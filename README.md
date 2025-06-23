@@ -43,6 +43,7 @@ cd POLY_PIPELINE
 ```
 
 ## 📂 Project Structure
+```markdown
 POLY_PIPELINE/
 ├── bin/
 │   ├── SCRIPT_1.py
@@ -58,3 +59,4 @@ POLY_PIPELINE/
 ├── LICENSE
 ├── CONTRIBUTING.md
 └── README.md
+```
