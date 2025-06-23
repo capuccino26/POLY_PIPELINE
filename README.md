@@ -32,36 +32,29 @@ See the [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 
 This project is licensed under the [MIT License](LICENSE).
 
-## 📦 Requirements
-
-```bash
-conda env create -f environment.yml
-conda activate poly_pipeline
-```
-
 ---
 
 ## 🛠️ Usage
 
-Basic usage (after cloning this repository):
-
 ```bash
-python main.py --input path/to/raw_data/ --output results/
+git clone https://github.com/capuccino26/POLY_PIPELINE.git
+cd POLY_PIPELINE
+./install.sh
 ```
-
-Or run individual modules:
-
-```bash
-python preprocess.py --input raw_data/
-python analyze.py --method spatial
-
-
-```bash
-pip install -r requirements.txt
 
 ## 📂 Project Structure
 POLY_PIPELINE/
-├── bin/                     # Scripts folder
-├── requirements.txt         # Python package dependencies
+├── bin/
+│   ├── SCRIPT_1.py
+│   └── SCRIPT_2.r
+├── INPUT/
+│   └── <empty folder>
+│
+├── RESULTS/
+│   └── <empty folder>
+├── environment.yml
+├── install.sh
+├── main.cpp
 ├── LICENSE
+├── CONTRIBUTING.md
 └── README.md

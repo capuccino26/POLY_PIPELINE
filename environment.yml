@@ -7,14 +7,27 @@ dependencies:
   - python=3.10
   - salmon
   - star
-  - build-essential
-  - uuid-dev
-  - libgpgme-dev
+  - openpyxl
+  - samtools
+  - biopython
+  - pyfaidx
+  - numpy
+  - matplotlib
+  - seaborn
+  - scipy
+  - tqdm
+  - python-dotenv
+  - pathlib2
+  - rich
+  - loguru
+  - ipykernel
+  - jupyterlab
+  - blast
+  - pandas
   - squashfs-tools
-  - libseccomp-dev
   - wget
   - pkg-config
   - git
-  - cryptsetup-bin
-  - singularity
   - pip
+  - pip:
+      - pyexcel-ods
