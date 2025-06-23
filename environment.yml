@@ -1,0 +1,20 @@
+name: poly_pipeline
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - salmon
+  - star
+  - build-essential
+  - uuid-dev
+  - libgpgme-dev
+  - squashfs-tools
+  - libseccomp-dev
+  - wget
+  - pkg-config
+  - git
+  - cryptsetup-bin
+  - singularity
+  - pip
