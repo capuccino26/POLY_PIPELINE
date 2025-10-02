@@ -3,6 +3,12 @@ GENOMES/
 INPUT/
 RESULTS/
 BK/
+INPUT/datasets/*
+
+# GENERATED SCRIPTS
+bin/data_validation_analysis.py
+bin/stereopy_annotation_analysis.py
+bin/stereopy_ultimate_analysis.py
 
 # GUI
 poly_app
