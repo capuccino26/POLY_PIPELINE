@@ -72,7 +72,7 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     | `MIN_COUNTS` | Minimum number of counts per cell. |
     | `MIN_GENES` | Minimum number of genes per cell. |
     | `PCT_COUNTS_MT` | Acceptable percentage of mitochondrial genes. |
-    | `N_PCS` | Number of principal components. This step can be inproved after first run. Ceck the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS |
+    | `N_PCS` | Number of principal components. This step can be inproved after first run. Check the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS |
 
 #### Local Execution Example
 > **IMPORTANT:** This analysis requires high computational resources and are not recommended to be run locally.
