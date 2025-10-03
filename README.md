@@ -25,7 +25,7 @@ The pipeline is designed to be executed from the **main folder** (`POLY_PIPELINE
 
 1.  **Clone and Install:**
     ```bash
-    git clone [https://github.com/capuccino26/POLY_PIPELINE.git](https://github.com/capuccino26/POLY_PIPELINE.git)
+    git clone https://github.com/capuccino26/POLY_PIPELINE.git
     cd POLY_PIPELINE
     ./install.sh
     ```
