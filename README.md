@@ -37,6 +37,7 @@ The core scripts are optimized for **SGE cluster** execution. They use **relativ
 ####  Data Input
 The input file must be the `.gef` file (post-processed by the SAW pipeline). It **must be placed** in the `INPUT/datasets/` folder.
 > **IMPORTANT:** Place **only one** `.gef` file in the `datasets` folder.
+
 It is possible **(BUT NOT REQUIRED)** to generate differential analysis for a list of genes of interest, generate the file `INPUT/datasets/interest_genes.txt` following the structure:
 ```markdown
 gene_name,Gene_ID_1,Gene_ID_2,Gene_ID_3,Gene_ID_4,Gene_ID_5
@@ -90,7 +91,8 @@ POLY_PIPELINE/
 ├── CONTRIBUTING.md
 ├── INPUT/
 │   └── datasets/
-│       └── <place .gef file here>
+│       ├── <place .gef file here>
+│       └── <(OPTIONAL) place interest_genes.txt here>
 ├── LICENSE
 ├── RESULTS/
 │   └── <results folders and .zip files generated>
