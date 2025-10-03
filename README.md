@@ -83,18 +83,13 @@ POLY_PIPELINE/
 ├── RESULTS/
 │   └── <results folders and .zip files generated>
 ├── README.md
-├── bin/
-│   ├── 0_SET_ENV.sh
-│   ├── 1_TEST_ENV.sh
-│   ├── 2_DOC_ANALYSIS.sh
-│   ├── 3_ANNOTATION.sh
-│   ├── 4_VALIDATEH5.sh
-│   ├── 5_ZIP_RESULTS.sh
-│   └── poly_exe
-├── environment.yml
-├── install.sh
-├── main.cpp
-└── poly_app
+└── bin/
+    ├── 0_SET_ENV.sh
+    ├── 1_TEST_ENV.sh
+    ├── 2_DOC_ANALYSIS.sh
+    ├── 3_ANNOTATION.sh
+    ├── 4_VALIDATEH5.sh
+    └── 5_ZIP_RESULTS.sh
 ```
 
 ---
