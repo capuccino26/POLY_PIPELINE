@@ -23,15 +23,9 @@ See the [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 
 The pipeline is designed to be executed from the **main folder** (`POLY_PIPELINE/`) and requires a dedicated Conda environment.
 
-1.  **Clone and Install:**
-    ```bash
-    git clone https://github.com/capuccino26/POLY_PIPELINE.git
-    cd POLY_PIPELINE
-    ./install.sh
-    ```
-2.  **Set Environment:**
+1.  **Set Environment:**
     * Run `bin/0_SET_ENV.sh` to activate the **`st`** Conda environment, which is essential due to the strict package dependencies of **Stereopy**.
-3.  **Test Environment:**
+2.  **Test Environment:**
     * Run `bin/1_TEST_ENV.sh` to verify the installation.
 
 ---
