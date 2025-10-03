@@ -82,9 +82,6 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 
 POLY_PIPELINE/
 ├── CONTRIBUTING.md
-├── GENOMES/
-│   ├── RAW/
-│   └── SALMON/
 ├── INPUT/
 │   └── datasets/
 │       └── <place .gef file here>
