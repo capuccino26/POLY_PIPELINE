@@ -73,7 +73,7 @@ To run the main analysis locally using the `bash` wrapper and your specific Cond
 
 ```bash
 ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_COUNTS_MT=100 N_PCS=30 bash bin/2_DOC_ANALYSIS.sh
-
+```
 ---
 
 ## 📄 License
