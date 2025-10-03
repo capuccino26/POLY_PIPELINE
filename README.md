@@ -74,6 +74,35 @@ To run the main analysis locally using the `bash` wrapper and your specific Cond
 ```bash
 ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_COUNTS_MT=100 N_PCS=30 bash bin/2_DOC_ANALYSIS.sh
 ```
+
+---
+
+## 📂 Project Structure
+```markdown
+
+POLY_PIPELINE/
+├── CONTRIBUTING.md
+├── INPUT/
+│   └── datasets/
+│       └── <place .gef file here>
+├── LICENSE
+├── RESULTS/
+│   └── <results folders and .zip files generated>
+├── README.md
+├── bin/
+│   ├── 0_SET_ENV.sh
+│   ├── 1_TEST_ENV.sh
+│   ├── 2_DOC_ANALYSIS.sh
+│   ├── 3_ANNOTATION.sh
+│   ├── 4_VALIDATEH5.sh
+│   ├── 5_ZIP_RESULTS.sh
+│   └── poly_exe
+├── environment.yml
+├── install.sh
+├── main.cpp
+└── poly_app
+```
+
 ---
 
 ## 📄 License
