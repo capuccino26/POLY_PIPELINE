@@ -7,6 +7,7 @@
 ## 📘 Overview
 
 **POLY_PIPELINE** is a comprehensive bioinformatics pipeline designed to process and analyze **STOmics** data specifically tailored for **polyploid** organisms. It automates and simplifies several crucial steps of spatial transcriptomics data analysis, ensuring reproducibility, flexibility, and scalability for handling large, complex polyploid genomes. This pipeline leverages a modular structure and relies heavily on the **Stereopy**.
+
 ---
 
 ## 🤝 Contributing
@@ -72,7 +73,7 @@ To run the main analysis locally using the `bash` wrapper and your specific Cond
 
 ```bash
 ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_COUNTS_MT=100 N_PCS=30 bash bin/2_DOC_ANALYSIS.sh
-
+```
 ---
 
 ## 📄 License
