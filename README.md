@@ -37,6 +37,18 @@ The core scripts are optimized for **SGE cluster** execution. They use **relativ
 ####  Data Input
 The input file must be the `.gef` file (post-processed by the SAW pipeline). It **must be placed** in the `INPUT/datasets/` folder.
 > **IMPORTANT:** Place **only one** `.gef` file in the `datasets` folder.
+It is possible **(BUT NOT REQUIRED)** to generate differential analysis for a list of genes of interest, generate the file `INPUT/datasets/interest_genes.txt` following the structure:
+```markdown
+gene_name,Gene_ID_1,Gene_ID_2,Gene_ID_3,Gene_ID_4,Gene_ID_5
+FLORAL_MERISTEM,AT5G08570,LOC107775591,Nicotiana_T001,LOC107775592
+STRESS_HEAT,AT1G53540,LOC107817066,GmHIS4_A01,LOC107817067,AT2G41090
+AUXIN_RESPONSE,AT3G15540,LOC107833544,Os02g0602300,AT4G20560
+CELL_CYCLE,LOC107769919,AT1G44110,LOC107769920,AT3G53210
+APICAL_DOMINANCE,LOC107802111,AT2G44320,LOC107802112
+DEFENSE_MECH,AT5G41220,LOC107764120,Solyc01g099710
+GIBBERELLIN_SYN,LOC107823450,AT1G05030,LOC107823451,AT3G44360
+```
+Each line represents one gene of interest starting with the identification of the gene followed by all correponding IDs (The IDs must match the mapping reference used in the generation of the .gef file).
 
 | Step | Script | Description |
 | :--- | :--- | :--- |

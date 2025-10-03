@@ -130,6 +130,7 @@ import scanpy as sc
 import scipy.sparse as sp
 from scipy.sparse import issparse
 import glob
+import csv
 
 # Set matplotlib backend for cluster
 import matplotlib
@@ -222,19 +223,41 @@ def get_single_gef_file(datasets_dir='INPUT/datasets'):
     
     return data_path
 
-# Function for custom genes analysis
+# Function for analysis of genes of interest
 def create_custom_gene_markers():
-    gene_markers = {
-        'wbm': ['LOC123098670', 'LOC123061307', 'LOC123066686'],
-        'wpbf': ['LOC123059808', 'LOC123119198'],
-        'fla8': ['LOC100037569', 'LOC123139798', 'LOC100037570', 'LOC123059581', 'LOC123068066', 'LOC123085109', 'LOC123092897', 'LOC123098178', 'LOC123087287', 'LOC123090665', 'LOC123095681'],
-        'cr4': ['LOC123147342', 'LOC123156413', 'LOC123164476'],
-        'dek1': ['LOC123128152', 'LOC123137948', 'LOC123145251'],
-        'atg8': ['LOC123102623', 'LOC123110809', 'LOC123061797', 'LOC123052774', 'LOC123085026', 'LOC123093032', 'LOC123098316', 'LOC123150089', 'LOC123161828', 'LOC123164280', 'LOC123187348', 'LOC123043535', 'LOC123051401', 'LOC123122369'],
-        'pin': ['LOC123101925', 'LOC543308', 'LOC100125699', 'LOC123146845'],
-        'sal1': ['LOC123063366', 'LOC123114207', 'LOC123189599', 'LOC123045847', 'LOC123053723'],
-        'vp1': ['LOC123062086', 'LOC123070812', 'LOC780609', 'LOC123043350', 'LOC123051199'],
-    }
+    file_path = 'INPUT/interest_genes.txt'
+    gene_markers = {}
+
+    if not os.path.exists(file_path):
+        print(f"Warning: File of genes of interest not found in {file_path}. Proceeding without genes of interest.")
+        return gene_markers
+
+    try:
+        with open(file_path, mode='r', newline='', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            
+            try:
+                next(reader) 
+            except StopIteration:
+                print(f"Warning: The file {file_path} is empty. Proceeding without genes of interest")
+                return gene_markers
+
+            for row in reader:
+                if not any(row):
+                    continue
+
+                marker_name = row[0].strip()
+                loc_ids = [loc_id.strip() for loc_id in row[1:] if loc_id.strip()]
+                
+                if marker_name and loc_ids:
+                    gene_markers[marker_name] = loc_ids
+                elif marker_name and not loc_ids:
+                    print(f"Warning: The gene '{marker_name}' was ignored because it has no gene IDs.")
+
+    except Exception as e:
+        print(f"ERROR: Processing {file_path} failed. Proceeding without genes of interest. Error: {e}")
+        return {}
+        
     return gene_markers
 
 # Function for analyzing custom genes
@@ -977,7 +1000,8 @@ def create_direct_gene_visualization():
         
         gene_names = data.genes.gene_name.tolist()
         gene_markers = create_custom_gene_markers()
-        
+        print(gene_markers)
+
         log_step("Calculating gene enrichment by category")
         enrichment_results = {}
         cell_categories = pd.Series(['Other'] * len(base_clusters), index=base_clusters.index)
@@ -1416,6 +1440,7 @@ with open(annotation_log_file, 'w') as f:
 log_step("Applying custom gene interest annotation")
 
 custom_gene_markers = create_custom_gene_markers()
+print(custom_gene_markers)
 custom_annotations, custom_scores, annotation_details = apply_gene_interest_annotation(
     data, custom_gene_markers, threshold=1.2
 )

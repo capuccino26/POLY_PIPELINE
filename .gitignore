@@ -7,7 +7,7 @@ environment.yml
 
 # DATA FOLDERS
 GENOMES/
-INPUT/
+INPUT/*
 RESULTS/
 BK/
 INPUT/datasets/*
