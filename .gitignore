@@ -1,3 +1,9 @@
+# (TEMPORARY) FILES UNDER DEVELOPMENT
+install.sh
+main.cpp
+poly_app
+bin/poly_exe
+
 # DATA FOLDERS
 GENOMES/
 INPUT/
