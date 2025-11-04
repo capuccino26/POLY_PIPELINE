@@ -6,7 +6,7 @@
 
 ## Overview
 
-**POLY_PIPELINE** is a comprehensive bioinformatics pipeline designed to process and analyze **STOmics** data specifically tailored for **polyploid** organisms. It automates and simplifies several crucial steps of spatial transcriptomics data analysis, ensuring reproducibility, flexibility, and scalability for handling large, complex polyploid genomes. This pipeline leverages a modular structure and relies heavily on the **Stereopy**.
+**POLY_PIPELINE** is a comprehensive bioinformatics pipeline designed to process and analyze **STOmics** data specifically tailored for **polyploid** organisms. It automates and simplifies several crucial steps of spatial transcriptomics data analysis, ensuring reproducibility, flexibility, and scalability for handling large, complex polyploid genomes. This pipeline leverages a modular structure and relies heavily on the [**Stereopy package**](https://github.com/STOmics/Stereopy).
 
 ---
 
@@ -35,7 +35,7 @@ The pipeline is designed to be executed from the **main folder** (`POLY_PIPELINE
 The core scripts are optimized for **SGE cluster** execution. They use **relative paths** and **must be run from the `POLY_PIPELINE` main directory.**
 
 ####  Data Input
-The input file must be the `.gef` file (post-processed by the SAW pipeline). It **must be placed** in the `INPUT/datasets/` folder.
+The input file must be the `.gef` file (post-processed by the [**SAW pipeline**](https://github.com/STOmics/SAW)). It **must be placed** in the `INPUT/datasets/` folder.
 > **IMPORTANT:** Place **only one** `.gef` file in the `datasets` folder.
 
 It is possible **(BUT NOT REQUIRED)** to generate differential analysis for a list of genes of interest, generate the file `INPUT/datasets/interest_genes.txt` following the structure:
