@@ -63,6 +63,10 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     ```bash
     qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=100,N_PCS=30 bin/2_COMPLETE_ANALYSIS.sh
     ```
+    **Optional: Add coordinate filtering to analyze specific regions**
+    ```bash
+    qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=100,N_PCS=30,MIN_X=7176,MAX_X=16425,MIN_Y=5300,MAX_Y=12200 bin/2_COMPLETE_ANALYSIS.sh
+    ```
     | Variable | Description |
     | :--- | :--- |
     | `ST_PYTHON` | Path to the python executable inside the st environment. |
@@ -70,13 +74,19 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     | `MIN_GENES` | Minimum number of genes per cell. |
     | `PCT_COUNTS_MT` | Acceptable percentage of mitochondrial genes. |
     | `N_PCS` | Number of principal components. This step can be inproved after first run. Check the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS |
+    | `MIN_X` | *(Optional)* Minimum X coordinate for spatial filtering. |
+    | `MAX_X` | *(Optional)* Maximum X coordinate for spatial filtering. |
+    | `MIN_Y` | *(Optional)* Minimum Y coordinate for spatial filtering. |
+    | `MAX_Y` | *(Optional)* Maximum Y coordinate for spatial filtering. |
 
+* The variables are not required, the script can run with defaults and the entire tissue area.
+* If coordinate filtering are required (MIN_X, MAX_X, MIN_Y, MAX_Y), all coordinate parameters must be provided together.
 #### Local Execution Example
 > **IMPORTANT:** This analysis requires high computational resources and are not recommended to be run locally.
 To run the main analysis locally using the `bash` wrapper and your specific Conda path:
 
 ```bash
-ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_COUNTS_MT=100 N_PCS=30 bash bin/2_COMPLETE_ANALYSIS.sh
+ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_COUNTS_MT=100 N_PCS=30 MIN_X=7176 MAX_X=16425 MIN_Y=5300 MAX_Y=12200 bash bin/2_COMPLETE_ANALYSIS.sh
 ```
 
 ---

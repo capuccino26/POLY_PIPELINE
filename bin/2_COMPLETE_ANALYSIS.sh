@@ -92,6 +92,11 @@ MIN_GENES=${MIN_GENES:-3}
 PCT_COUNTS_MT=${PCT_COUNTS_MT:-5}
 N_PCS=${N_PCS:-10}
 BIN_SIZE=${BIN_SIZE:-50}
+MIN_X=${MIN_X:-}
+MAX_X=${MAX_X:-}
+MIN_Y=${MIN_Y:-}
+MAX_Y=${MAX_Y:-}
+
 echo "Filtering Parameters Used:"
 echo "  Minimum counts: $MIN_COUNTS"
 echo "  Minimum genes per cell: $MIN_GENES"
@@ -878,7 +883,15 @@ genes_before = data.n_genes
 
 try:
     data.tl.filter_cells(min_counts=MIN_COUNTS)
-    data.tl.filter_coordinates(min_x=7176, max_x=16425, min_y=5300, max_y=12200)
+    MIN_X = ${MIN_X:-None}
+    MAX_X = ${MAX_X:-None}
+    MIN_Y = ${MIN_Y:-None}
+    MAX_Y = ${MAX_Y:-None}
+    if all(v is not None for v in [MIN_X, MAX_X, MIN_Y, MAX_Y]):
+        log_step(f"(LOUVAIN) Applying coordinate filtering: X[{MIN_X}, {MAX_X}], Y[{MIN_Y}, {MAX_Y}]")
+        data.tl.filter_coordinates(min_x=MIN_X, max_x=MAX_X, min_y=MIN_Y, max_y=MAX_Y)
+    else:
+        log_step("(LOUVAIN) Skipping coordinate filtering (parameters not provided)")
     cells_after = data.n_cells
     genes_after = data.n_genes
     
