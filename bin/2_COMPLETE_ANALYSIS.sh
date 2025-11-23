@@ -4,8 +4,8 @@
 #$ -pe smp 16
 #$ -l h_vmem=12G
 #$ -N STEREOPY_ANALYSIS
-#$ -o stereopy_ultimate_$JOB_ID.out
-#$ -e stereopy_ultimate_$JOB_ID.err
+#$ -o stereopy_$JOB_ID.out
+#$ -e stereopy_$JOB_ID.err
 
 echo "==========================================="
 echo "STEREOPY ANALYSIS"
@@ -106,12 +106,12 @@ echo "Number of Principal Components used:"
 echo "  $N_PCS"
 echo "  This step can be inproved after first run. Ceck the Elbow Plot (plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS"
 echo "You can alter the parameters inline:"
-echo "  qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=100,N_PCS=30 bin/2_DOC_ANALYSIS.sh"
+echo "  qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=100,N_PCS=30,MIN_X=7176,MAX_X=16425,MIN_Y=5300,MAX_Y=12200 bin/2_DOC_ANALYSIS.sh"
 echo ""
 
 # Generate analysis script
 echo "Creating analysis script for Stereopy"
-cat > bin/stereopy_ultimate_analysis.py << EOF
+cat > bin/stereopy_analysis.py << EOF
 #!/usr/bin/env python3
 """
 Stereopy Spatial Transcriptomics Analysis
@@ -494,13 +494,13 @@ def create_direct_gene_visualization():
         ax.legend(markerscale=3, fontsize=10, bbox_to_anchor=(1.05, 1), loc='upper left')
         ax.grid(True, alpha=0.3)
         plt.tight_layout(rect=[0, 0, 0.8, 1])
-        main_plot = os.path.join(annotation_output_dir, 'plots', 'gene_interest_direct_spatial_combined.png')
+        main_plot = os.path.join(output_dir, 'plots', 'gene_interest_direct_spatial_combined.png')
         plt.savefig(main_plot, dpi=300, bbox_inches='tight', facecolor='white')
         plt.close()
         log_step(f"Main combined plot saved: {main_plot}")
 
         log_step("Creating individual plots for each gene of interest")
-        individual_gene_plot_dir = os.path.join(annotation_output_dir, 'plots', 'gene_expression_individual')
+        individual_gene_plot_dir = os.path.join(output_dir, 'plots', 'gene_expression_individual')
         os.makedirs(individual_gene_plot_dir, exist_ok=True)
         
         all_genes_of_interest = []
@@ -542,7 +542,7 @@ def create_direct_gene_visualization():
             log_step(f"Individual plot for gene '{gene_name}' saved: {plot_file}")
             log_step(f"File size: {os.path.getsize(plot_file) / 1e6:.1f} MB")
             
-        report_file = os.path.join(annotation_output_dir, 'direct_gene_enrichment_report.txt')
+        report_file = os.path.join(output_dir, 'direct_gene_enrichment_report.txt')
         with open(report_file, 'w') as f:
             f.write("GENE ENRICHMENT ANALYSIS REPORT\n")
             f.write("="*100 + "\n\n")
@@ -780,8 +780,7 @@ log_memory_usage("START")
 
 # Filepaths
 data_path = get_single_gef_file()
-output_dir = 'RESULTS/results_ultimate'
-annotation_output_dir = 'RESULTS/results_annotation'
+output_dir = 'RESULTS/results'
 
 # Directory structure
 directories = [
@@ -794,25 +793,22 @@ directories = [
     os.path.join(output_dir, 'marker_genes', 'complete_results'),
     os.path.join(output_dir, 'marker_genes', 'filtered_results'),
     os.path.join(output_dir, 'statistical_analysis'),
-    os.path.join(output_dir, 'statistical_analysis', 'advanced'),
     os.path.join(output_dir, 'logs'),
     os.path.join(output_dir, 'exports'),
-    annotation_output_dir,
-    os.path.join(annotation_output_dir, 'plots'),
-    os.path.join(annotation_output_dir, 'plots', 'annotation'),
-    os.path.join(annotation_output_dir, 'annotations'),
-    os.path.join(annotation_output_dir, 'annotations', 'automated'),
-    os.path.join(annotation_output_dir, 'exports'),
-    os.path.join(annotation_output_dir, 'exports', 'h5ad'),
-    os.path.join(annotation_output_dir, 'exports', 'csv'),
-    os.path.join(annotation_output_dir, 'exports', 'metadata'),
-    os.path.join(annotation_output_dir, 'individual_clusters'),
-    os.path.join(annotation_output_dir, 'individual_clusters', 'louvain'),
-    os.path.join(annotation_output_dir, 'individual_clusters', 'leiden'),
-    os.path.join(annotation_output_dir, 'individual_clusters', 'spatial_leiden'),
-    os.path.join(annotation_output_dir, 'biological_interpretation'),
-    os.path.join(annotation_output_dir, 'logs'),
-    os.path.join(annotation_output_dir, 'checkpoints')
+    os.path.join(output_dir, 'plots'),
+    os.path.join(output_dir, 'plots', 'annotation'),
+    os.path.join(output_dir, 'annotations'),
+    os.path.join(output_dir, 'exports'),
+    os.path.join(output_dir, 'exports', 'h5ad'),
+    os.path.join(output_dir, 'exports', 'csv'),
+    os.path.join(output_dir, 'exports', 'metadata'),
+    os.path.join(output_dir, 'individual_clusters'),
+    os.path.join(output_dir, 'individual_clusters', 'louvain'),
+    os.path.join(output_dir, 'individual_clusters', 'leiden'),
+    os.path.join(output_dir, 'individual_clusters', 'spatial_leiden'),
+    os.path.join(output_dir, 'customization'),
+    os.path.join(output_dir, 'logs'),
+    os.path.join(output_dir, 'checkpoints')
 ]
 
 for directory in directories:
@@ -821,7 +817,7 @@ for directory in directories:
 log_step(f"Created {len(directories)} output folders")
 
 # Analysis log
-analysis_log_path = os.path.join(output_dir, 'logs', 'ultimate_analysis_log.txt')
+analysis_log_path = os.path.join(output_dir, 'logs', 'analysis_log.txt')
 with open(analysis_log_path, 'w') as f:
     f.write("="*100 + "\n")
     f.write("ANALYSIS LOG\n")
@@ -1510,7 +1506,7 @@ log_step("="*100)
 log_step("(LOUVAIN) STATISTICAL ANALYSIS")
 log_step("="*100)
 
-advanced_stats_dir = os.path.join(output_dir, 'statistical_analysis', 'advanced')
+advanced_stats_dir = os.path.join(output_dir, 'statistical_analysis')
 
 # Load the complete marker genes for advanced analysis
 complete_markers_file = os.path.join(marker_genes_dir, 'COMPLETE_all_marker_genes_no_limits.csv')
@@ -1683,13 +1679,13 @@ if os.path.exists(top_viz_file):
             res_key='marker_genes',
             markers_num=10,
             sort_key='scores',
-            out_path=os.path.join(viz_marker_dir, 'ultimate_top15_marker_genes_text.png')
+            out_path=os.path.join(viz_marker_dir, 'top15_marker_genes_text.png')
         )
         
         data.plt.marker_genes_scatter(
             res_key='marker_genes', 
             markers_num=10,
-            out_path=os.path.join(viz_marker_dir, 'ultimate_top10_marker_genes_scatter.png')
+            out_path=os.path.join(viz_marker_dir, 'top10_marker_genes_scatter.png')
         )
         
         log_step("(LOUVAIN) Visualizations completed")
@@ -2417,13 +2413,13 @@ if os.path.exists(top_viz_file):
             res_key='marker_genes_spldn',
             markers_num=10,
             sort_key='scores',
-            out_path=os.path.join(viz_marker_dir, 'LEIDEN_ultimate_top15_marker_genes_text.png')
+            out_path=os.path.join(viz_marker_dir, 'LEIDEN_top15_marker_genes_text.png')
         )
         
         data.plt.marker_genes_scatter(
             res_key='marker_genes_spldn', 
             markers_num=10,
-            out_path=os.path.join(viz_marker_dir, 'LEIDEN_ultimate_top10_marker_genes_scatter.png')
+            out_path=os.path.join(viz_marker_dir, 'LEIDEN_top10_marker_genes_scatter.png')
         )
         
         log_step("(LEIDEN) Visualizations completed")
@@ -2519,7 +2515,7 @@ custom_annotations, custom_scores, annotation_details = apply_gene_interest_anno
 )
 
 # Create detailed report for custom gene annotation
-custom_report_file = os.path.join(annotation_output_dir, 'biological_interpretation', 'LEIDEN_custom_gene_interest_report.txt')
+custom_report_file = os.path.join(output_dir, 'customization', 'LEIDEN_custom_gene_interest_report.txt')
 with open(custom_report_file, 'w') as f:
     f.write("(LEIDEN) CUSTOM GENES OF INTEREST ANNOTATION REPORT\n")
     f.write("="*100 + "\n\n")
@@ -2565,12 +2561,12 @@ if os.path.exists(marker_genes_file):
         log_step(f"(LEIDEN) Created annotations for {len(biological_annotations)} clusters")
         
         # Save biological annotation mapping
-        bio_anno_file = os.path.join(annotation_output_dir, 'annotations', 'automated', 'LEIDEN_biological_annotations.json')
+        bio_anno_file = os.path.join(output_dir, 'annotations', 'LEIDEN_biological_annotations.json')
         with open(bio_anno_file, 'w') as f:
             json.dump(biological_annotations, f, indent=2)
         
         # Create marker-based annotation report
-        marker_report_file = os.path.join(annotation_output_dir, 'biological_interpretation', 'LEIDEN_marker_based_annotation_report.txt')
+        marker_report_file = os.path.join(output_dir, 'customization', 'LEIDEN_marker_based_annotation_report.txt')
         with open(marker_report_file, 'w') as f:
             f.write("MARKER-BASED BIOLOGICAL ANNOTATION REPORT\n")
             f.write("="*100 + "\n\n")
@@ -2863,7 +2859,7 @@ for cluster_method in clustering_methods:
     
     # Save annotation files
     for anno_type, anno_dict in method_annotations.items():
-        anno_file = os.path.join(annotation_output_dir, 'annotations', 'automated', 
+        anno_file = os.path.join(output_dir, 'annotations', 
                                 f'{cluster_method}_{anno_type}_annotations.json')
         with open(anno_file, 'w') as f:
             json.dump(anno_dict, f, indent=2)
@@ -2892,12 +2888,12 @@ for cluster_method in clustering_methods:
             )
             
             # Create spatial visualization
-            plot_file = os.path.join(annotation_output_dir, 'plots', 'annotation', 
+            plot_file = os.path.join(output_dir, 'plots', 'annotation', 
                                     f'{cluster_method}_{anno_type}_spatial.png')
             data.plt.cluster_scatter(res_key=res_key, out_path=plot_file)
             
             # Create UMAP visualization
-            umap_plot_file = os.path.join(annotation_output_dir, 'plots', 'annotation', 
+            umap_plot_file = os.path.join(output_dir, 'plots', 'annotation', 
                                          f'{cluster_method}_{anno_type}_umap.png')
             data.plt.umap(res_key='umap', cluster_key=res_key, out_path=umap_plot_file)
             
@@ -2917,7 +2913,7 @@ custom_annotations, custom_scores, annotation_details = apply_gene_interest_anno
 )
 
 # Create detailed report for custom gene annotation
-custom_report_file = os.path.join(annotation_output_dir, 'biological_interpretation', 'custom_gene_interest_report.txt')
+custom_report_file = os.path.join(output_dir, 'customization', 'custom_gene_interest_report.txt')
 with open(custom_report_file, 'w') as f:
     f.write("(LOUVAIN) CUSTOM GENES OF INTEREST ANNOTATION REPORT\n")
     f.write("="*100 + "\n\n")
@@ -2964,12 +2960,12 @@ if os.path.exists(marker_genes_file):
         log_step(f"Created biological annotations for {len(biological_annotations)} clusters")
         
         # Save biological annotation mapping
-        bio_anno_file = os.path.join(annotation_output_dir, 'annotations', 'automated', 'biological_annotations.json')
+        bio_anno_file = os.path.join(output_dir, 'annotations', 'biological_annotations.json')
         with open(bio_anno_file, 'w') as f:
             json.dump(biological_annotations, f, indent=2)
         
         # Create detailed marker-based annotation report
-        marker_report_file = os.path.join(annotation_output_dir, 'biological_interpretation', 'marker_based_annotation_report.txt')
+        marker_report_file = os.path.join(output_dir, 'customization', 'marker_based_annotation_report.txt')
         with open(marker_report_file, 'w') as f:
             f.write("MARKER-BASED BIOLOGICAL ANNOTATION REPORT\n")
             f.write("="*100 + "\n\n")
@@ -3021,7 +3017,7 @@ for cluster_method in clustering_methods:
             log_step(f"  ERROR: Could not find spatial coordinates for {cluster_method}")
             continue
         
-        individual_dir = os.path.join(annotation_output_dir, 'individual_clusters', cluster_method)
+        individual_dir = os.path.join(output_dir, 'individual_clusters', cluster_method)
         os.makedirs(individual_dir, exist_ok=True)
         
         unique_clusters = sorted(data.cells[cluster_method].unique())
@@ -3163,7 +3159,7 @@ try:
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     h5ad_filename = f"D02266B1_stereopy_complete_analysis_leiden_expanded_{timestamp}.h5ad"
-    h5ad_path = os.path.join(annotation_output_dir, 'exports', 'h5ad', h5ad_filename)
+    h5ad_path = os.path.join(output_dir, 'exports', 'h5ad', h5ad_filename)
     
     log_step(f"Exporting to {h5ad_filename}")
     
@@ -3258,7 +3254,7 @@ try:
 
     try:
         log_step("Exporting metadata CSV")
-        metadata_csv = os.path.join(annotation_output_dir, 'exports', 'metadata', 'comprehensive_cell_metadata.csv')
+        metadata_csv = os.path.join(output_dir, 'exports', 'metadata', 'comprehensive_cell_metadata.csv')
         
         # Start with cells DataFrame
         metadata_df = cells_df.copy()
@@ -3291,7 +3287,7 @@ try:
         log_step(f"Metadata CSV saved: {len(metadata_df)} cells, {len(metadata_df.columns)} columns")
 
         # Export gene metadata
-        gene_metadata_csv = os.path.join(annotation_output_dir, 'exports', 'metadata', 'gene_metadata.csv')
+        gene_metadata_csv = os.path.join(output_dir, 'exports', 'metadata', 'gene_metadata.csv')
         if hasattr(data.genes, 'gene_name'):
             gene_df = pd.DataFrame({
                 'gene_name': data.genes.gene_name
@@ -3342,7 +3338,7 @@ try:
                             columns=valid_hvg_genes
                         )
                     
-                        expression_file = os.path.join(annotation_output_dir, 'exports', 'csv', 'hvg_expression_matrix.csv')
+                        expression_file = os.path.join(output_dir, 'exports', 'csv', 'hvg_expression_matrix.csv')
                         
                         hvg_expression_matrix_df.to_csv(expression_file)
                         log_step(f"HVG matrix saved in {expression_file} with {hvg_expression_matrix_df.shape[0]} cells and {hvg_expression_matrix_df.shape[1]} genes")
@@ -3369,7 +3365,7 @@ try:
                                     index=data.cells.cell_name,
                                     columns=[hvg_genes[hvg_genes.index(data.genes.gene_name.iloc[idx])] for idx in gene_indices if data.genes.gene_name.iloc[idx] in hvg_genes]
                                 )
-                                expression_file = os.path.join(annotation_output_dir, 'exports', 'csv', 'hvg_expression_matrix.csv')
+                                expression_file = os.path.join(output_dir, 'exports', 'csv', 'hvg_expression_matrix.csv')
                                 hvg_df.to_csv(expression_file)
                                 log_step(f"Fallback success: File saved with {hvg_df.shape[0]} cells and {hvg_df.shape[1]} genes")
                             else:
@@ -3410,7 +3406,7 @@ else:
 if direct_results:
     log_step("SUCCESS: Direct gene visualization completed!")
     clean_spatial_success = create_clean_spatial_visualization_from_direct_results(
-        direct_results, data, annotation_output_dir
+        direct_results, data, output_dir
     )
     
     if clean_spatial_success:
@@ -3428,7 +3424,7 @@ log_step("="*100)
 end_time = datetime.now()
 total_duration = (end_time - start_time).total_seconds()
 
-final_report_path = os.path.join(annotation_output_dir, 'ANNOTATION_ANALYSIS_REPORT.txt')
+final_report_path = os.path.join(output_dir, 'ANNOTATION_ANALYSIS_REPORT.txt')
 with open(final_report_path, 'w') as f:
     f.write("="*100 + "\n")
     f.write("STEREOPY ANNOTATION & EXPORT ANALYSIS REPORT\n")
@@ -3467,7 +3463,7 @@ log_step("="*100)
 log_step("ANNOTATION & EXPORT ANALYSIS COMPLETED!")
 log_step("="*100)
 log_step(f"Total processing time: {total_duration/60:.1f} minutes")
-log_step(f"Results location: {annotation_output_dir}")
+log_step(f"Results location: {output_dir}")
 log_step("")
 
 
@@ -3480,8 +3476,8 @@ log_step("="*100)
 end_time = datetime.now()
 total_duration = (end_time - start_time).total_seconds()
 
-# Generate ultimate final report
-final_report_path = os.path.join(output_dir, 'ULTIMATE_ANALYSIS_REPORT.txt')
+# Generate final report
+final_report_path = os.path.join(output_dir, 'ANALYSIS_REPORT.txt')
 with open(final_report_path, 'w') as f:
     f.write("="*100 + "\n")
     f.write("STEREOPY SPATIAL TRANSCRIPTOMICS ANALYSIS REPORT\n")
@@ -3528,7 +3524,7 @@ with open(final_report_path, 'w') as f:
     f.write("- stringent_markers.csv: High-confidence markers\n")
     f.write("- moderate_markers.csv: Standard analysis markers\n")
     f.write("- Individual cluster files: complete_results/cluster_XX_complete_markers.csv\n")
-    f.write("- Advanced statistics: statistical_analysis/advanced/\n")
+    f.write("- Statistics: statistical_analysis/\n")
     f.write("- Complete visualizations: plots/marker_genes/volcano_plots_complete/\n")
     f.write("- Comprehensive logs: logs/\n\n")
     
@@ -3542,7 +3538,7 @@ with open(final_report_path, 'w') as f:
 # Save processing summary
 processing_summary_file = os.path.join(output_dir, 'logs', 'processing_summary.json')
 processing_summary = {
-    'analysis_type': 'ULTIMATE_NO_LIMITS',
+    'analysis_type': 'NO_LIMITS',
     'start_time': start_time.isoformat(),
     'end_time': end_time.isoformat(),
     'total_duration_seconds': total_duration,
@@ -3563,7 +3559,7 @@ processing_summary = {
 with open(processing_summary_file, 'w') as f:
     json.dump(processing_summary, f, indent=2)
 
-log_step(f"Ultimate analysis report saved to {final_report_path}")
+log_step(f"Analysis report saved to {final_report_path}")
 log_step(f"Processing summary saved to {processing_summary_file}")
 log_memory_usage("FINAL")
 
@@ -3571,7 +3567,7 @@ log_memory_usage("FINAL")
 gc.collect()
 
 log_step("="*100)
-log_step("ULTIMATE ANALYSIS COMPLETED SUCCESSFULLY!")
+log_step("ANALYSIS COMPLETED SUCCESSFULLY!")
 log_step(f"Total processing time: {total_duration/60:.1f} minutes")
 log_step(f"Peak memory usage: {psutil.virtual_memory().percent:.1f}%")
 log_step(f"Results location: {output_dir}")
@@ -3589,14 +3585,14 @@ echo "Starting analysis"
 echo "==========================================="
 echo ""
 
-$ST_PYTHON bin/stereopy_ultimate_analysis.py
+$ST_PYTHON bin/stereopy_analysis.py
 
 if [ $? -eq 0 ]; then
     echo ""
     echo "==========================================="
     echo "ANALYSIS COMPLETED SUCCESSFULLY!"
     echo "==========================================="
-    echo "Complete results saved to: RESULTS/results_ultimate/"
+    echo "Complete results saved to: RESULTS/results/"
     echo "==========================================="
     echo ""
 else

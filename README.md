@@ -91,6 +91,15 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 
 ---
 
+### Miscellaneous Pipeline (Secondary analysis)
+
+| Step | Script | Description | Usage | Observations |
+| :--- | :--- | :--- | :--- | :--- |
+| [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) | `bin/MISC_01_PLOT_CELL.py` | Script for generating plots with gene of interest expression overlay over sample. | python bin/MISC_01_PLOT_CELL.py -o CLUSTER10 -t 10 --min_x 7176 --max_x 16425 --min_y 5300 --max_y 12200 | Not all variables are required |
+
+* If coordinate filtering are required (min_y, max_y, min_x, max_x), all coordinate parameters must be provided together.
+---
+
 ## Project Structure
 ```markdown
 
@@ -107,7 +116,9 @@ POLY_PIPELINE/
 └── bin/
     ├── 0_SET_ENV.sh
     ├── 1_TEST_ENV.sh
-    └── 2_COMPLETE_ANALYSIS.sh
+    ├── 2_COMPLETE_ANALYSIS.sh
+    └── MISC_01_PLOT_CELL.py
+
 ```
 
 ---
