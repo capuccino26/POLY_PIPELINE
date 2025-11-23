@@ -80,7 +80,7 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     | `MAX_Y` | *(Optional)* Maximum Y coordinate for spatial filtering. |
 
 * The variables are not required, the script can run with defaults and the entire tissue area.
-* If coordinate filtering are required (MIN_X, MAX_X, MIN_Y, MAX_Y), all coordinate parameters must be provided together.
+* If coordinate filtering is required (MIN_X, MAX_X, MIN_Y, MAX_Y), all coordinate parameters must be provided together.
 #### Local Execution Example
 > **IMPORTANT:** This analysis requires high computational resources and are not recommended to be run locally.
 To run the main analysis locally using the `bash` wrapper and your specific Conda path:
@@ -95,7 +95,7 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 
 | Step | Script | Description | Usage | Observations |
 | :--- | :--- | :--- | :--- | :--- |
-| [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) | `bin/MISC_01_PLOT_CELL.py` | Script for generating plots with gene of interest expression overlay over sample. | python bin/MISC_01_PLOT_CELL.py -i INT_GENES.txt -o CLUSTER10 -t 10 --min_x 7176 --max_x 16425 --min_y 5300 --max_y 12200 | Only variable -i (--interest) are required, the others are optional; Check example file below |
+| [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) | `bin/MISC_01_PLOT_CELL.py` | Script for generating plots with gene of interest expression overlay over sample. | python bin/MISC_01_PLOT_CELL.py -i INT_GENES.txt -o CLUSTER10 -t 10 --min_x 7176 --max_x 16425 --min_y 5300 --max_y 12200 | Only variable -i (--interest) is required, the others are optional; Check example file below |
 
 * For script [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) the gene file list should be as below, with one gene/loc per line:
 ```markdown
@@ -107,7 +107,7 @@ LOC123126477
 LOC123045745
 LOC123129052
 ```
-* If coordinate filtering are required (min_y, max_y, min_x, max_x), all coordinate parameters must be provided together.
+* If coordinate filtering is required (min_y, max_y, min_x, max_x), all coordinate parameters must be provided together.
 ---
 
 ## Project Structure
