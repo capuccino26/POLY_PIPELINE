@@ -95,8 +95,18 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 
 | Step | Script | Description | Usage | Observations |
 | :--- | :--- | :--- | :--- | :--- |
-| [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) | `bin/MISC_01_PLOT_CELL.py` | Script for generating plots with gene of interest expression overlay over sample. | python bin/MISC_01_PLOT_CELL.py -o CLUSTER10 -t 10 --min_x 7176 --max_x 16425 --min_y 5300 --max_y 12200 | Not all variables are required |
+| [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) | `bin/MISC_01_PLOT_CELL.py` | Script for generating plots with gene of interest expression overlay over sample. | python bin/MISC_01_PLOT_CELL.py -i INT_GENES.txt -o CLUSTER10 -t 10 --min_x 7176 --max_x 16425 --min_y 5300 --max_y 12200 | Only variable -i (--interest) are required, the others are optional; Check example file below |
 
+* For script [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) the gene file list should be as below, with one gene/loc per line:
+```markdown
+LOC123047130
+LOC123091185
+LOC123147796
+LOC123112488
+LOC123126477
+LOC123045745
+LOC123129052
+```
 * If coordinate filtering are required (min_y, max_y, min_x, max_x), all coordinate parameters must be provided together.
 ---
 
