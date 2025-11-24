@@ -113,9 +113,6 @@ echo ""
 echo "Creating analysis script for Stereopy"
 cat > bin/stereopy_analysis.py << EOF
 #!/usr/bin/env python3
-"""
-Stereopy Spatial Transcriptomics Analysis
-"""
 # Import dependencies
 import stereo as st
 import warnings
