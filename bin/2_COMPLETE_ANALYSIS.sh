@@ -846,6 +846,76 @@ except Exception as e:
     log_step(f"ERROR loading data: {e}")
     sys.exit(1)
 
+# Generate GEF file summary
+log_step("Generating GEF file summary.")
+try:
+    gef_summary_file = os.path.join(output_dir, "gef_summary.txt")
+    output_genes_csv = os.path.join(output_dir, "gef_genes.csv")
+    output_cells_csv = os.path.join(output_dir, "gef_cells.csv")
+    file_info = {}
+
+    # Check if attributes are present
+    if 'data' not in locals() or not hasattr(data, 'attr'):
+        file_info = {"ERROR": "Data object not loaded or missing 'attr' attribute."}
+        raise AttributeError("Data object is missing or invalid.")
+    file_info['bin_list'] = ['bin1']
+    file_info['resolution'] = data.attr['resolution']
+    file_info['gene_count'] = data.n_genes
+    file_info['offsetX'] = data.offset_x
+    file_info['offsetY'] = data.offset_y
+    file_info['width'] = data.attr['maxX']
+    file_info['height'] = data.attr['maxY']
+    file_info['maxExp'] = data.attr['maxExp']
+    log_step(f"GEF File summary extracted: {file_info.get('resolution')} resolution, {file_info.get('width')}x{file_info.get('height')} dimensions.")
+
+    # Write summary file
+    with open(gef_summary_file, "w") as f:
+        f.write("="*50 + "\n")
+        f.write("GEF FILE STATISTICS\n")
+        f.write("="*50 + "\n")
+        f.write("Data object:\n")
+        f.write(str(data) + "\n")
+        f.write(f"Metadata (from 'attr' object):\n{file_info}\n")
+        f.write(f"Total genes: {file_info.get('gene_count', 'N/A')}\n")
+        f.write(f"Top 5 genes: {data.genes.gene_name[:5].tolist()}\n\n")
+        f.write(f"Total cells: {data.n_cells}\n")
+        f.write(f"Shape (cells x genes): {data.exp_matrix.shape}\n")
+        f.write(f"Maximum expression: {file_info.get('maxExp', 'N/A')}\n\n")
+        f.write(f"Width: {file_info.get('width', 'N/A')}\n")
+        f.write(f"Height: {file_info.get('height', 'N/A')}\n")
+        
+        # Write first 5 positions
+        if hasattr(data, 'position') and data.position is not None:
+            f.write("First 5 cell positions:\n")
+            for i, pos in enumerate(data.position[:5]):
+                f.write(f"{i+1}: {pos.tolist()}\n")
+            f.write("\n")
+        else:
+            f.write("Position data not available.\n\n")
+
+        f.write("File Information:\n")
+        for key, value in file_info.items():
+            f.write(f"{key}: {value}\n")
+        f.write("\n" + "="*50 + "\n")
+    log_step(f"Summary report saved: '{gef_summary_file}'.")
+
+    # Export sorted list of genes
+    log_step(f"Exporting sorted list of genes")
+    genes_df = pd.DataFrame(data.gene_names, columns=['gene_name'])
+    genes_df.index.name = 'gene_id'
+    genes_df.to_csv(output_genes_csv)
+    
+    # Export list of cells
+    log_step(f"Exporting list of cells.")
+    cells_df_gef = pd.DataFrame(data.cell_names, columns=['cell_name'])
+    cells_df_gef.index.name = 'cell_id'
+    cells_df_gef.to_csv(output_cells_csv)
+    
+    log_step("Gene and Cell metadata successfully exported.")
+
+except Exception as e:
+    log_step(f"WARNING: Failed to generate GEF summary or export metadata: {e}")
+
 # Filtering parameters from bash
 MIN_COUNTS = $MIN_COUNTS
 MIN_GENES = $MIN_GENES
