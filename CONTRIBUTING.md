@@ -1,11 +1,11 @@
-# 🤝 Contributing Guide
+# Contributing Guide
 
 Thank you for your interest in contributing to **POLY_PIPELINE**!  
 We welcome contributions of all kinds — from bug fixes and improvements to new features and documentation.
 
 ---
 
-## 📌 Contribution Steps
+## Contribution Steps
 
 Follow these simple steps to contribute:
 
@@ -30,12 +30,10 @@ Follow these simple steps to contribute:
 
 ---
 
-## 📃 Notes
+## Notes
 
 * Please ensure your code is clean, well-documented, and follows the general structure of the project.
 * Feel free to open an issue first to discuss major changes or new features.
 * All contributions will be reviewed before merging.
 
 ---
-
-Thank you for helping make this project better! 🙌
