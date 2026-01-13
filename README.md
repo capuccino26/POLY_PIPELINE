@@ -61,11 +61,11 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
 
 * [**Analysis Script:**](bin/2_COMPLETE_ANALYSIS.sh)
     ```bash
-    qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=100,N_PCS=30 bin/2_COMPLETE_ANALYSIS.sh
+    qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=30,N_PCS=30 bin/2_COMPLETE_ANALYSIS.sh
     ```
     **Optional: Add coordinate filtering to analyze specific regions**
     ```bash
-    qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=100,N_PCS=30,MIN_X=7176,MAX_X=16425,MIN_Y=5300,MAX_Y=12200 bin/2_COMPLETE_ANALYSIS.sh
+    qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=30,N_PCS=30,MIN_X=7176,MAX_X=16425,MIN_Y=5300,MAX_Y=12200 bin/2_COMPLETE_ANALYSIS.sh
     ```
     | Variable | Description |
     | :--- | :--- |
