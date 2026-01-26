@@ -35,7 +35,7 @@ The pipeline is designed to be executed from the **main folder** (`POLY_PIPELINE
 The core scripts are optimized for **SGE cluster** execution. They use **relative paths** and **must be run from the `POLY_PIPELINE` main directory.**
 
 ####  Data Input
-The input file must be the [`.gef`](stereopy_ultimate_16850.out) file (post-processed by the [**SAW pipeline**](https://github.com/STOmics/SAW)). It **must be placed** in the `INPUT/datasets/` folder.
+The input file must be the [`.gef`](https://www.processon.com/view/link/610cc49c7d9c087bbd1ab7ab#map) file (post-processed by the [**SAW pipeline**](https://github.com/STOmics/SAW)). It **must be placed** in the `INPUT/datasets/` folder.
 > **IMPORTANT:** Place **only one** `.gef` file in the `datasets` folder.
 
 It is possible **(BUT NOT REQUIRED)** to generate differential analysis for a list of genes of interest, generate the file `INPUT/datasets/interest_genes.txt` following the structure:
