@@ -35,7 +35,7 @@ The pipeline is designed to be executed from the **main folder** (`POLY_PIPELINE
 The core scripts are optimized for **SGE cluster** execution. They use **relative paths** and **must be run from the `POLY_PIPELINE` main directory.**
 
 ####  Data Input
-The input file must be the `.gef` file (post-processed by the [**SAW pipeline**](https://github.com/STOmics/SAW)). It **must be placed** in the `INPUT/datasets/` folder.
+The input file must be the [`.gef`](https://www.processon.com/view/link/610cc49c7d9c087bbd1ab7ab#map) file (post-processed by the [**SAW pipeline**](https://github.com/STOmics/SAW)). It **must be placed** in the `INPUT/datasets/` folder.
 > **IMPORTANT:** Place **only one** `.gef` file in the `datasets` folder.
 
 It is possible **(BUT NOT REQUIRED)** to generate differential analysis for a list of genes of interest, generate the file `INPUT/datasets/interest_genes.txt` following the structure:
@@ -80,7 +80,7 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     | `MAX_Y` | *(Optional)* Maximum Y coordinate for spatial filtering. |
 
 * The variables are not required, the script can run with defaults and the entire tissue area.
-* If coordinate filtering are required (MIN_X, MAX_X, MIN_Y, MAX_Y), all coordinate parameters must be provided together.
+* If coordinate filtering is required (MIN_X, MAX_X, MIN_Y, MAX_Y), all coordinate parameters must be provided together.
 #### Local Execution Example
 > **IMPORTANT:** This analysis requires high computational resources and are not recommended to be run locally.
 To run the main analysis locally using the `bash` wrapper and your specific Conda path:
@@ -89,6 +89,25 @@ To run the main analysis locally using the `bash` wrapper and your specific Cond
 ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_COUNTS_MT=100 N_PCS=30 MIN_X=7176 MAX_X=16425 MIN_Y=5300 MAX_Y=12200 bash bin/2_COMPLETE_ANALYSIS.sh
 ```
 
+---
+
+### Miscellaneous Pipeline (Secondary analysis)
+
+| Step | Script | Description | Usage | Observations |
+| :--- | :--- | :--- | :--- | :--- |
+| [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) | `bin/MISC_01_PLOT_CELL.py` | Script for generating plots with gene of interest expression overlay over sample. | python bin/MISC_01_PLOT_CELL.py -i INT_GENES.txt -o CLUSTER10 -t 10 --min_x 7176 --max_x 16425 --min_y 5300 --max_y 12200 | Only variable -i (--interest) is required, the others are optional; Check example file below |
+
+* For script [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) the gene file list should be as below, with one gene/loc per line:
+```markdown
+LOC123047130
+LOC123091185
+LOC123147796
+LOC123112488
+LOC123126477
+LOC123045745
+LOC123129052
+```
+* If coordinate filtering is required (min_y, max_y, min_x, max_x), all coordinate parameters must be provided together.
 ---
 
 ## Project Structure
@@ -107,7 +126,9 @@ POLY_PIPELINE/
 └── bin/
     ├── 0_SET_ENV.sh
     ├── 1_TEST_ENV.sh
-    └── 2_COMPLETE_ANALYSIS.sh
+    ├── 2_COMPLETE_ANALYSIS.sh
+    └── MISC_01_PLOT_CELL.py
+
 ```
 
 ---
