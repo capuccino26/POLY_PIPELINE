@@ -122,8 +122,7 @@ LOC123129052
 ### Network Visualization (Secondary analysis)
 
 * After running the secondary network analysis, the Edges and Nodes files will be generated under the EXPORTS folder, which can be used for posterior visualizations/filtering, mainly [**NETWORKX**](https://networkx.org/en/) and [**Cytoscape**](https://cytoscape.org/).
-* [project_name]_FULL_EDGES.txt
-* [project_name]_FULL_NODES.txt
+
 
 * Importing for Cytoscape:
 * `File` -> `Import` -> `Network from File...`.
