@@ -61,11 +61,7 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
 
 * [**Analysis Script:**](bin/2_COMPLETE_ANALYSIS.sh)
     ```bash
-    qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=100,N_PCS=30 bin/2_COMPLETE_ANALYSIS.sh
-    ```
-    **Optional: Add coordinate filtering to analyze specific regions**
-    ```bash
-    qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=100,N_PCS=30,MIN_X=7176,MAX_X=16425,MIN_Y=5300,MAX_Y=12200 bin/2_COMPLETE_ANALYSIS.sh
+    qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=30,N_PCS=30 bin/2_COMPLETE_ANALYSIS.sh
     ```
     | Variable | Description |
     | :--- | :--- |
@@ -74,13 +70,24 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     | `MIN_GENES` | Minimum number of genes per cell. |
     | `PCT_COUNTS_MT` | Acceptable percentage of mitochondrial genes. |
     | `N_PCS` | Number of principal components. This step can be inproved after first run. Check the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS |
+    | `ANALYSIS` | *(Optional)* Select the type of analysis (check below for details): [1 - standard] Primary analysis, [2] Secondary analysis, [3] Network Analysis |
     | `MIN_X` | *(Optional)* Minimum X coordinate for spatial filtering. |
     | `MAX_X` | *(Optional)* Maximum X coordinate for spatial filtering. |
     | `MIN_Y` | *(Optional)* Minimum Y coordinate for spatial filtering. |
-    | `MAX_Y` | *(Optional)* Maximum Y coordinate for spatial filtering. |
+    | `HVG_MIN_MEAN` | *(Optional)* Min mean filtering for selection of HVGs. |
+    | `HVG_MAX_MEAN` | *(Optional)* Max mean filtering for selection of HVGs. |
+    | `HVG_DISP` | *(Optional)* Dispersion filtering for selection of HVGs. |
+    | `HVG_TOP` | *(Optional)* Number of top genes selected for HVG filtering. |
 
 * The variables are not required, the script can run with defaults and the entire tissue area.
+* The corret python path (ST_PYTHON) for the server must be selected.
 * If coordinate filtering is required (MIN_X, MAX_X, MIN_Y, MAX_Y), all coordinate parameters must be provided together.
+
+#### Analysis selection
+* The script is set to the primary analysis [1] as standard, proper for any spatial analysis from original files and generating the primary results.
+* The script includes secondary analysis for specific uses, including [2] for secondary analysis and [3] for network analysis.
+* Options must be explicit when submiting the job (or [1] will be used as standard).
+
 #### Local Execution Example
 > **IMPORTANT:** This analysis requires high computational resources and are not recommended to be run locally.
 To run the main analysis locally using the `bash` wrapper and your specific Conda path:
@@ -93,10 +100,12 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 
 ### Miscellaneous Pipeline (Secondary analysis)
 
-| Step | Script | Description | Usage | Observations |
-| :--- | :--- | :--- | :--- | :--- |
-| [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) | `bin/MISC_01_PLOT_CELL.py` | Script for generating plots with gene of interest expression overlay over sample. | python bin/MISC_01_PLOT_CELL.py -i INT_GENES.txt -o CLUSTER10 -t 10 --min_x 7176 --max_x 16425 --min_y 5300 --max_y 12200 | Only variable -i (--interest) is required, the others are optional; Check example file below |
+| Step | Script | Description | Usage | Observations | Standalone |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) | `bin/MISC_01_PLOT_CELL.py` | Script for generating plots with gene of interest expression overlay over sample. | python bin/MISC_01_PLOT_CELL.py -i INT_GENES.txt -o CLUSTER10 -t 10 --min_x 7176 --max_x 16425 --min_y 5300 --max_y 12200 | Only variable -i (--interest) is required, the others are optional; Check example file below | Yes |
+| [**Network Analysis**](bin/SCRIPT_NETWORK_ANALYSIS.r) | `bin/SCRIPT_NETWORK_ANALYSIS.r` | Script for generating WGCNA network based on the Highly Variable Genes (HVG) generated from the primary analysis. | Rscript bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | The script generates all individual clusters and the complete file for posterior visualization (Cytoscape/others), check guide below | No |
 
+* Standalone scripts should be run locally since they are not included in the main pipeline, all other can be run from the main scripts as secondary analysis (check Analysis options section).
 * For script [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) the gene file list should be as below, with one gene/loc per line:
 ```markdown
 LOC123047130
@@ -108,6 +117,25 @@ LOC123045745
 LOC123129052
 ```
 * If coordinate filtering is required (min_y, max_y, min_x, max_x), all coordinate parameters must be provided together.
+---
+
+### Network Visualization (Secondary analysis)
+
+* After running the secondary network analysis, the Edges and Nodes files will be generated under the EXPORTS folder, which can be used for posterior visualizations/filtering, mainly [**NETWORKX**](https://networkx.org/en/) and [**Cytoscape**](https://cytoscape.org/).
+[project_name]_FULL_EDGES.txt
+[project_name]_FULL_NODES.txt
+
+* Importing for Cytoscape:
+** `File` -> `Import` -> `Network from File...`.
+** Select file EXPORTS/[project_name]_FULL_EDGES.txt.
+** Under the configuration, select `fromNode` (Source Node), `toNode` (Target Node) and `weight` (Edge Attribute).
+** Click `OK`.
+** `File` -> `Import` -> `Table from File...`.
+** Select file EXPORTS/[project_name]_FULL_NODES.txt.
+** Select (auto) column `gene_name` as key.
+** Click `OK`.
+** For proper coloring clusters: Select **Style** from sidebar, select `Fill Color`, select `module` as column, select **Discrete Mapping** and use right buttom to select `Mapping Value Generators` to automatically select colors for each module.
+** Check documentation for further details.
 ---
 
 ## Project Structure
