@@ -93,7 +93,7 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
 To run the main analysis locally using the `bash` wrapper and your specific Conda path:
 
 ```bash
-ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_COUNTS_MT=100 N_PCS=30 MIN_X=7176 MAX_X=16425 MIN_Y=5300 MAX_Y=12200 bash bin/2_COMPLETE_ANALYSIS.sh
+ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_COUNTS_MT=30 N_PCS=30 bash bin/2_COMPLETE_ANALYSIS.sh
 ```
 
 ---
@@ -103,9 +103,9 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 | Step | Script | Description | Usage | Observations | Standalone |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) | `bin/MISC_01_PLOT_CELL.py` | Script for generating plots with gene of interest expression overlay over sample. | python bin/MISC_01_PLOT_CELL.py -i INT_GENES.txt -o CLUSTER10 -t 10 --min_x 7176 --max_x 16425 --min_y 5300 --max_y 12200 | Only variable -i (--interest) is required, the others are optional; Check example file below | Yes |
-| [**Network Analysis**](bin/SCRIPT_NETWORK_ANALYSIS.r) | `bin/SCRIPT_NETWORK_ANALYSIS.r` | Script for generating WGCNA network based on the Highly Variable Genes (HVG) generated from the primary analysis. | Rscript bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | The script generates all individual clusters and the complete file for posterior visualization (Cytoscape/others), check guide below | No |
+| [**Network Analysis**](bin/SCRIPT_NETWORK_ANALYSIS.r) | `bin/SCRIPT_NETWORK_ANALYSIS.r` | Script for generating WGCNA network based on the Highly Variable Genes (HVG) generated from the primary analysis. | Rscript bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | The script generates all individual clusters and the complete file for posterior visualization (Cytoscape/others), check guide below | Optional |
 
-* Standalone scripts should be run locally since they are not included in the main pipeline, all other can be run from the main scripts as secondary analysis (check Analysis options section).
+* Standalone scripts should be run locally since they are not included in the main pipeline, all other (Optional) can be run from the main scripts as secondary analysis (check Analysis options section).
 * For script [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) the gene file list should be as below, with one gene/loc per line:
 ```markdown
 LOC123047130
@@ -122,20 +122,20 @@ LOC123129052
 ### Network Visualization (Secondary analysis)
 
 * After running the secondary network analysis, the Edges and Nodes files will be generated under the EXPORTS folder, which can be used for posterior visualizations/filtering, mainly [**NETWORKX**](https://networkx.org/en/) and [**Cytoscape**](https://cytoscape.org/).
-[project_name]_FULL_EDGES.txt
-[project_name]_FULL_NODES.txt
+* [project_name]_FULL_EDGES.txt
+* [project_name]_FULL_NODES.txt
 
 * Importing for Cytoscape:
-** `File` -> `Import` -> `Network from File...`.
-** Select file EXPORTS/[project_name]_FULL_EDGES.txt.
-** Under the configuration, select `fromNode` (Source Node), `toNode` (Target Node) and `weight` (Edge Attribute).
-** Click `OK`.
-** `File` -> `Import` -> `Table from File...`.
-** Select file EXPORTS/[project_name]_FULL_NODES.txt.
-** Select (auto) column `gene_name` as key.
-** Click `OK`.
-** For proper coloring clusters: Select **Style** from sidebar, select `Fill Color`, select `module` as column, select **Discrete Mapping** and use right buttom to select `Mapping Value Generators` to automatically select colors for each module.
-** Check documentation for further details.
+* `File` -> `Import` -> `Network from File...`.
+* Select file EXPORTS/[project_name]_FULL_EDGES.txt.
+* Under the configuration, select `fromNode` (Source Node), `toNode` (Target Node) and `weight` (Edge Attribute).
+* Click `OK`.
+* `File` -> `Import` -> `Table from File...`.
+* Select file EXPORTS/[project_name]_FULL_NODES.txt.
+* Select (auto) column `gene_name` as key.
+* Click `OK`.
+* For proper coloring clusters: Select **Style** from sidebar, select `Fill Color`, select `module` as column, select **Discrete Mapping** and use right buttom to select `Mapping Value Generators` to automatically select colors for each module.
+* Check documentation for further details.
 ---
 
 ## Project Structure
