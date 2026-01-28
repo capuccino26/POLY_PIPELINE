@@ -110,9 +110,12 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 * For script [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) the gene file list should be as below, with one gene/loc per line:
 ```markdown
 LOC123047130
+ATCG00020
 LOC123091185
+AT1G29920
 LOC123147796
 LOC123112488
+ATCG00730
 LOC123126477
 LOC123045745
 LOC123129052
