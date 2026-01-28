@@ -13,9 +13,9 @@ BK/
 INPUT/datasets/*
 
 # GENERATED SCRIPTS
-bin/data_validation_analysis.py
-bin/stereopy_annotation_analysis.py
-bin/stereopy_ultimate_analysis.py
+bin/SCRIPT_NETWORK_ANALYSIS.r
+bin/SCRIPT_SECONDARY_ANALYSIS.py
+bin/SCRIPT_PRIMARY_ANALYSIS.py
 
 # GUI
 poly_app
