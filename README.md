@@ -103,23 +103,9 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 
 | Step | Script | Description | Usage | Observations | Standalone |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) | `bin/MISC_01_PLOT_CELL.py` | Script for generating plots with gene of interest expression overlay over sample. | python bin/MISC_01_PLOT_CELL.py -i INT_GENES.txt -o CLUSTER10 -t 10 --min_x 7176 --max_x 16425 --min_y 5300 --max_y 12200 | Only variable -i (--interest) is required, the others are optional; Check example file below | Yes |
 | [**Network Analysis**](bin/SCRIPT_NETWORK_ANALYSIS.r) | `bin/SCRIPT_NETWORK_ANALYSIS.r` | Script for generating WGCNA network based on the Highly Variable Genes (HVG) generated from the primary analysis. | Rscript bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | The script generates all individual clusters and the complete file for posterior visualization (Cytoscape/others), check guide below | Optional |
 
 * Standalone scripts should be run locally since they are not included in the main pipeline, all other (Optional) can be run from the main scripts as secondary analysis (check Analysis options section).
-* For script [**Plotting interest genes over sample**](bin/MISC_01_PLOT_CELL.py) the gene file list should be as below, with one gene/loc per line:
-```markdown
-LOC123047130
-ATCG00020
-LOC123091185
-AT1G29920
-LOC123147796
-LOC123112488
-ATCG00730
-LOC123126477
-LOC123045745
-LOC123129052
-```
 * If coordinate filtering is required (min_y, max_y, min_x, max_x), all coordinate parameters must be provided together.
 ---
 
