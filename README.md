@@ -63,22 +63,23 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     ```bash
     qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=30,N_PCS=30 bin/2_COMPLETE_ANALYSIS.sh
     ```
-    | Variable | Description |
-    | :--- | :--- |
-    | `ST_PYTHON` | Path to the python executable inside the st environment. |
-    | `MIN_COUNTS` | Minimum number of counts per cell. |
-    | `MIN_GENES` | Minimum number of genes per cell. |
-    | `PCT_COUNTS_MT` | Acceptable percentage of mitochondrial genes. |
-    | `N_PCS` | Number of principal components. This step can be inproved after first run. Check the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS |
-    | `ANALYSIS` | *(Optional)* Select the type of analysis (check below for details): [1 - standard] Primary analysis, [2] Secondary analysis, [3] Network Analysis |
-    | `INTEREST_GENES_PATH` | *(Optional)* Select the list of candidate genes for analysis (see above). The scripts search for "INPUT/interest_genes.txt" as standard, use explicit path for custom list: INTEREST_GENES_PATH="/Storage/user/file_name.txt" |
-    | `MIN_X` | *(Optional)* Minimum X coordinate for spatial filtering. |
-    | `MAX_X` | *(Optional)* Maximum X coordinate for spatial filtering. |
-    | `MIN_Y` | *(Optional)* Minimum Y coordinate for spatial filtering. |
-    | `HVG_MIN_MEAN` | *(Optional)* Min mean filtering for selection of HVGs. |
-    | `HVG_MAX_MEAN` | *(Optional)* Max mean filtering for selection of HVGs. |
-    | `HVG_DISP` | *(Optional)* Dispersion filtering for selection of HVGs. |
-    | `HVG_TOP` | *(Optional)* Number of top genes selected for HVG filtering. |
+    | Variable | Description | Default | 
+    | :--- | :--- | :--- |
+    | `ST_PYTHON` | Path to the python executable inside the st environment. | - |
+    | `MIN_COUNTS` | Minimum number of counts per cell. | -  |
+    | `MIN_GENES` | Minimum number of genes per cell. | - |
+    | `PCT_COUNTS_MT` | Acceptable percentage of mitochondrial genes. | - |
+    | `N_PCS` | Number of principal components. This step can be inproved after first run. Check the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS | - |
+    | `ANALYSIS` | *(Optional)* Select the type of analysis (check below for details): [1 - standard] Primary analysis, [2] Secondary analysis, [3] Network Analysis | 1 |
+    | `INTEREST_GENES_PATH` | *(Optional)* Select the list of candidate genes for analysis (see above). use explicit path for custom list: INTEREST_GENES_PATH="/Storage/user/file_name.txt" | "INPUT/interest_genes.txt" |
+    | `EXPRESSION_THR` | *(Optional)* Set expression threshold for Interest Genes filtering. | 1.0 |
+    | `MIN_X` | *(Optional)* Minimum X coordinate for spatial filtering. | - |
+    | `MAX_X` | *(Optional)* Maximum X coordinate for spatial filtering. | - |
+    | `MIN_Y` | *(Optional)* Minimum Y coordinate for spatial filtering. | - |
+    | `HVG_MIN_MEAN` | *(Optional)* Min mean filtering for selection of HVGs. | 0.0125 |
+    | `HVG_MAX_MEAN` | *(Optional)* Max mean filtering for selection of HVGs. | 3.0 |
+    | `HVG_DISP` | *(Optional)* Dispersion filtering for selection of HVGs. | 0.5 |
+    | `HVG_TOP` | *(Optional)* Number of top genes selected for HVG filtering. | 2000 |
 
 * The variables are not required, the script can run with defaults and the entire tissue area.
 * The corret python path (ST_PYTHON) for the server must be selected.
