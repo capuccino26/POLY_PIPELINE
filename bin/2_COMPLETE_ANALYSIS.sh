@@ -115,6 +115,7 @@ HVG_MAX_MEAN=${HVG_MAX_MEAN:-3}
 HVG_DISP=${HVG_DISP:-0.5}
 HVG_TOP=${HVG_TOP:-2000}
 INTEREST_GENES_PATH=${INTEREST_GENES_PATH:-"INPUT/interest_genes.txt"}
+EXPRESSION_THR=${EXPRESSION_THR:-1.0}
 
 echo "Filtering Parameters Used:"
 echo "  Minimum counts: $MIN_COUNTS"
@@ -145,6 +146,7 @@ import scipy.stats as stats
 from scipy.stats import mannwhitneyu, ttest_ind
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib.colors import Normalize
 import seaborn as sns
 import psutil
 import gc
@@ -715,9 +717,12 @@ def create_clean_spatial_visualization_from_direct_results(direct_results, data,
         ax1.set_ylabel('Spatial Y (μm)')
         ax1.legend(frameon=False, fontsize=10, markerscale=2)
         ax1.grid(True, alpha=0.2)
-        x_range = spatial_coords[:, 0].max() - spatial_coords[:, 0].min()
-        y_range = spatial_coords[:, 1].max() - spatial_coords[:, 1].min()
-        aspect_ratio = x_range / y_range if y_range > 0 else 1
+        try:
+            x_range = float(spatial_coords[:, 0].max()) - float(spatial_coords[:, 0].min())
+            y_range = float(spatial_coords[:, 1].max()) - float(spatial_coords[:, 1].min())
+            aspect_ratio = x_range / y_range if y_range > 0 else 1
+        except (ValueError, TypeError):
+            aspect_ratio = 1  # fallback se conversão falhar
         ax1.set_aspect(aspect_ratio, adjustable='box')
         #ax1.set_aspect('equal', adjustable='box')
         for category in enriched_categories:
@@ -3641,6 +3646,267 @@ if direct_results:
     log_step("SUCCESS: Direct gene visualization completed!")
 else:
     log_step("FAILED: Could not create direct visualization")
+
+# Individual analysis
+log_step("="*100)
+log_step("INDIVIDUAL GENES ANALYSIS")
+log_step("="*100)
+
+interest_genes_path = "$INTEREST_GENES_PATH"
+expression_thr = $EXPRESSION_THR
+
+if interest_genes_path and os.path.exists(interest_genes_path):
+    # Parse gene list (format: category,gene1,gene2,gene3)
+    log_step(f"Loading genes from {interest_genes_path}")
+    interest_genes = []
+    try:
+        with open(interest_genes_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    # Split by comma and take all genes (skip first column which is category)
+                    parts = line.split(',')
+                    if len(parts) > 1:
+                        genes = [g.strip() for g in parts[1:] if g.strip()]
+                        interest_genes.extend(genes)
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        interest_genes = [g for g in interest_genes if not (g in seen or seen.add(g))]
+        
+        log_step(f"Loaded {len(interest_genes)} unique genes: {interest_genes}")
+        
+        if not interest_genes:
+            log_step("Warning: No genes found in file. Skipping individual analysis.")
+        else:
+            # Create output directories
+            individual_analysis_dir = os.path.join(output_dir, 'INTEREST_ANALYSIS')
+            os.makedirs(individual_analysis_dir, exist_ok=True)
+            
+            maps_dir = os.path.join(individual_analysis_dir, 'MAPS')
+            os.makedirs(maps_dir, exist_ok=True)
+            
+            total_counts_dir = os.path.join(maps_dir, 'TOTAL_COUNTS')
+            os.makedirs(total_counts_dir, exist_ok=True)
+            
+            for gene in interest_genes:
+                gene_dir = os.path.join(maps_dir, gene)
+                os.makedirs(gene_dir, exist_ok=True)
+            
+            # Get sample name
+            sample_name = os.path.splitext(os.path.basename(data_path))[0]
+            
+            # Calculate total counts
+            total_counts_array = data.exp_matrix.sum(axis=1).A1
+            tissue_spots_mask = total_counts_array > 0
+            
+            x_tissue = data.position[tissue_spots_mask, 0]
+            y_tissue = data.position[tissue_spots_mask, 1]
+            
+            sample_stats = {
+                'sample_name': sample_name,
+                'total_tissue_spots': int(np.sum(tissue_spots_mask)),
+                'genes': {}
+            }
+            
+            # PLOT: Total Counts Map
+            log_step("Generating total counts map")
+            fig, ax = plt.subplots(figsize=(10, 10), facecolor='black')
+            ax.set_facecolor('black')
+            
+            if np.sum(tissue_spots_mask) > 0:
+                total_counts_tissue = total_counts_array[tissue_spots_mask]
+                norm_total = Normalize(vmin=0, vmax=np.max(total_counts_tissue))
+                scatter_total = ax.scatter(x_tissue, y_tissue, 
+                                           c=total_counts_tissue, cmap='viridis', 
+                                           s=25, norm=norm_total, edgecolors='none')
+                cbar = plt.colorbar(scatter_total, ax=ax, label='Total Expression')
+                cbar.ax.yaxis.set_tick_params(color='white')
+                plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='white')
+                cbar.set_label('Total Expression', color='white')
+            
+            ax.set_title(f"Total Counts - {sample_name}", fontsize=16, color='white')
+            ax.set_xlabel('Spatial X (μm)', color='white')
+            ax.set_ylabel('Spatial Y (μm)', color='white')
+            ax.tick_params(colors='white')
+            for spine in ax.spines.values():
+                spine.set_color('white')
+            
+            path_counts = os.path.join(total_counts_dir, f"{sample_name}_total_counts_thr{expression_thr}.png")
+            plt.savefig(path_counts, dpi=300, bbox_inches='tight', facecolor='black')
+            plt.close(fig)
+            log_step(f"Total counts map saved: {path_counts}")
+            
+            # Process individual genes
+            for gene in interest_genes:
+                log_step(f"Processing gene: {gene}")
+                
+                gene_indices = np.where(data.genes.gene_name == gene)[0]
+                
+                if len(gene_indices) > 0:
+                    gene_index = gene_indices[0]
+                    gene_expression_vector = data.exp_matrix[:, gene_index].toarray().flatten()
+                    
+                    fig, ax = plt.subplots(figsize=(12, 10), facecolor='black')
+                    ax.set_facecolor('black')
+                    
+                    # Layer 1: Background (grayscale)
+                    if np.sum(tissue_spots_mask) > 0:
+                        total_counts_tissue = total_counts_array[tissue_spots_mask]
+                        norm_background = Normalize(vmin=0, vmax=np.max(total_counts_tissue))
+                        
+                        scatter_bg = ax.scatter(x_tissue, y_tissue, 
+                                               c=total_counts_tissue, 
+                                               cmap='gray',
+                                               s=15, 
+                                               norm=norm_background, 
+                                               alpha=0.5,
+                                               edgecolors='none',
+                                               label='Tissue Background')
+                    
+                    # Layer 2: Gene expression
+                    expressed_gene_spots_mask = (gene_expression_vector > expression_thr) & tissue_spots_mask
+                    
+                    if np.sum(expressed_gene_spots_mask) > 0:
+                        x_expressed = data.position[expressed_gene_spots_mask, 0]
+                        y_expressed = data.position[expressed_gene_spots_mask, 1]
+                        expression_values = gene_expression_vector[expressed_gene_spots_mask]
+                        
+                        norm_gene = Normalize(vmin=0, vmax=np.max(expression_values))
+                        scatter_gene = ax.scatter(x_expressed, y_expressed,
+                                                  c=expression_values, 
+                                                  cmap='plasma',
+                                                  s=35,
+                                                  norm=norm_gene, 
+                                                  edgecolors='white', 
+                                                  linewidths=0.3, 
+                                                  label=f'{gene}',
+                                                  alpha=0.95)
+                        
+                        cbar = plt.colorbar(scatter_gene, ax=ax, 
+                                           label=f'{gene} Expression (>{expression_thr})')
+                        cbar.ax.yaxis.set_tick_params(color='white')
+                        plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='white')
+                        cbar.set_label(f'{gene} Expression (>{expression_thr})', color='white')
+                        
+                        expressed_spots = int(np.sum(expressed_gene_spots_mask))
+                        max_expr = float(np.max(expression_values))
+                        min_expr = float(np.min(expression_values))
+                        mean_expr = float(np.mean(expression_values))
+                        
+                        log_step(f"{gene}: {expressed_spots} spots expressed, max: {max_expr:.2f}")
+                        
+                        sample_stats['genes'][gene] = {
+                            'expressed_spots': expressed_spots,
+                            'max_expression': max_expr,
+                            'min_expression': min_expr,
+                            'mean_expression': mean_expr,
+                            'percentage_of_tissue': (expressed_spots / sample_stats['total_tissue_spots'] * 100) if sample_stats['total_tissue_spots'] > 0 else 0
+                        }
+                        
+                        # Save individual stats
+                        stats_file = os.path.join(maps_dir, gene, f"{sample_name}_{gene}_stats_thr{expression_thr}.txt")
+                        with open(stats_file, 'w') as f:
+                            f.write(f"Gene: {gene}\n")
+                            f.write(f"Sample: {sample_name}\n")
+                            f.write(f"Analysis date: {datetime.now().strftime('%Y/%m/%d %H:%M:%S')}\n")
+                            f.write(f"Expression threshold: > {expression_thr}\n\n")
+                            f.write(f"Total tissue spots: {sample_stats['total_tissue_spots']}\n")
+                            f.write(f"Expressed spots: {expressed_spots}\n")
+                            f.write(f"Percentage of tissue: {(expressed_spots / sample_stats['total_tissue_spots'] * 100):.2f}%\n")
+                            f.write(f"Maximum expression: {max_expr:.2f}\n")
+                            f.write(f"Minimum expression: {min_expr:.2f}\n")
+                            f.write(f"Mean expression: {mean_expr:.2f}\n")
+                        
+                    else:
+                        log_step(f"{gene} not expressed above threshold {expression_thr}")
+                        sample_stats['genes'][gene] = {
+                            'expressed_spots': 0,
+                            'max_expression': 0,
+                            'min_expression': 0,
+                            'mean_expression': 0,
+                            'percentage_of_tissue': 0
+                        }
+                        
+                        stats_file = os.path.join(maps_dir, gene, f"{sample_name}_{gene}_stats_thr{expression_thr}.txt")
+                        with open(stats_file, 'w') as f:
+                            f.write(f"Gene: {gene}\n")
+                            f.write(f"Sample: {sample_name}\n")
+                            f.write(f"Status: Not expressed above threshold ({expression_thr})\n")
+                        
+                        ax.text(0.5, 0.95, f'{gene} not detected\n(expression ≤ {expression_thr})', 
+                               transform=ax.transAxes, fontsize=12, 
+                               bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7),
+                               ha='center', va='top', color='black')
+                    
+                    ax.set_title(f"Spatial Expression: {gene} - {sample_name}\n(Threshold > {expression_thr})", 
+                                fontsize=14, color='white', pad=20)
+                    ax.set_xlabel('Spatial X (μm)', fontsize=12, color='white')
+                    ax.set_ylabel('Spatial Y (μm)', fontsize=12, color='white')
+                    ax.tick_params(colors='white')
+                    for spine in ax.spines.values():
+                        spine.set_color('white')
+                    
+                    if np.sum(expressed_gene_spots_mask) > 0:
+                        legend = ax.legend(loc='upper left', bbox_to_anchor=(0, 1), 
+                                          framealpha=0.8, facecolor='black', edgecolor='white')
+                        for text in legend.get_texts():
+                            text.set_color('white')
+                    
+                    ax.grid(False)
+                    plt.tight_layout()
+                    
+                    plot_path = os.path.join(maps_dir, gene, f"{sample_name}_{gene}_thr{expression_thr}.png")
+                    plt.savefig(plot_path, dpi=300, bbox_inches='tight', facecolor='black')
+                    plt.close(fig)
+                    log_step(f"Plot saved: {plot_path}")
+                    
+                else:
+                    log_step(f"{gene} not found in dataset")
+                    sample_stats['genes'][gene] = 'Gene not found'
+                    
+                    stats_file = os.path.join(maps_dir, gene, f"{sample_name}_{gene}_stats_thr{expression_thr}.txt")
+                    with open(stats_file, 'w') as f:
+                        f.write(f"Gene: {gene}\n")
+                        f.write(f"Sample: {sample_name}\n")
+                        f.write(f"Status: Gene not found in dataset\n")
+            
+            # Save global stats
+            stats_file = os.path.join(individual_analysis_dir, f"expression_stats_thr{expression_thr}.txt")
+            with open(stats_file, 'w') as f:
+                f.write("INDIVIDUAL GENE EXPRESSION ANALYSIS\n")
+                f.write(f"Analysis date: {datetime.now().strftime('%Y/%m/%d %H:%M:%S')}\n")
+                f.write(f"Sample: {sample_name}\n")
+                f.write(f"Expression threshold: > {expression_thr}\n")
+                f.write(f"Total tissue spots: {sample_stats['total_tissue_spots']}\n\n")
+                f.write(f"Genes analyzed: {len(interest_genes)}\n")
+                f.write(f"Gene list: {', '.join(interest_genes)}\n\n")
+                f.write("="*80 + "\n\n")
+                
+                for gene, stats in sample_stats['genes'].items():
+                    f.write(f"GENE: {gene}\n")
+                    if isinstance(stats, dict):
+                        f.write(f"  Expressed spots: {stats['expressed_spots']}\n")
+                        f.write(f"  Percentage of tissue: {stats['percentage_of_tissue']:.2f}%\n")
+                        if stats['expressed_spots'] > 0:
+                            f.write(f"  Maximum expression: {stats['max_expression']:.2f}\n")
+                            f.write(f"  Minimum expression: {stats['min_expression']:.2f}\n")
+                            f.write(f"  Mean expression: {stats['mean_expression']:.2f}\n")
+                        else:
+                            f.write(f"  Expression: Below threshold\n")
+                    else:
+                        f.write(f"  Status: {stats}\n")
+                    f.write("\n")
+            
+            log_step(f"Individual gene analysis completed. Results in {individual_analysis_dir}")
+            
+    except Exception as e:
+        log_step(f"ERROR in individual gene analysis: {e}")
+        import traceback
+        traceback.print_exc()
+        
+else:
+    log_step("No interest genes file provided or file doesn't exist. Skipping individual gene analysis.")
 
 # DATA INTEGRATION
 
