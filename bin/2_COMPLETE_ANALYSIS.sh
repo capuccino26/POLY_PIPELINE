@@ -92,6 +92,14 @@ log_step(f'Seaborn version: {sns.__version__}')
 "
 echo ""
 
+# Define analysis (1 for primary, 2 for secondary)
+ANALYSIS=${ANALYSIS:-1}
+if [[ ! "$ANALYSIS" =~ ^[123]$ ]]; then
+    echo "ERROR: ANALYSIS must be primary [1], secondary [2], network [3]"
+    echo "Provided: ANALYSIS=$ANALYSIS"
+    exit 1
+fi
+
 # Set thresholds
 MIN_COUNTS=${MIN_COUNTS:-20}
 MIN_GENES=${MIN_GENES:-3}
@@ -106,6 +114,7 @@ HVG_MIN_MEAN=${HVG_MIN_MEAN:-0.0125}
 HVG_MAX_MEAN=${HVG_MAX_MEAN:-3}
 HVG_DISP=${HVG_DISP:-0.5}
 HVG_TOP=${HVG_TOP:-2000}
+INTEREST_GENES_PATH=${INTEREST_GENES_PATH:-"INPUT/interest_genes.txt"}
 
 echo "Filtering Parameters Used:"
 echo "  Minimum counts: $MIN_COUNTS"
@@ -121,8 +130,10 @@ echo "  qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,M
 echo ""
 
 # Generate analysis script
-echo "Creating analysis script for Stereopy"
-cat > bin/SPATIAL_ANALYSIS_SCRIPT.py << EOF
+echo "==========================================="
+echo "Creating Primary Script!"
+echo "==========================================="
+cat > bin/SCRIPT_PRIMARY_ANALYSIS.py << EOF
 #!/usr/bin/env python3
 # Import dependencies
 import stereo as st
@@ -257,11 +268,11 @@ def create_annotations_for_cluster_method(data, cluster_method='louvain'):
 
 # Function for analysis of genes of interest
 def create_custom_gene_markers():
-    file_path = 'INPUT/interest_genes.txt'
+    file_path = "$INTEREST_GENES_PATH"
     gene_markers = {}
 
     if not os.path.exists(file_path):
-        log_step(f"WARNING: File of genes of interest not found in {file_path}. Proceeding without genes of interest.")
+        log_step(f"WARNING: File of genes of interest not found. Proceeding without genes of interest.")
         return gene_markers
 
     try:
@@ -488,13 +499,13 @@ def create_direct_gene_visualization():
         if 'Other' in cell_categories.unique():
             other_mask = cell_categories == 'Other'
             ax.scatter(spatial_coords[other_mask, 0], spatial_coords[other_mask, 1],
-                       c='#CCCCCC', s=2.0, alpha=0.4, label='Other clusters')
+                       c='#CCCCCC', s=5.0, alpha=0.4, label='Other clusters')
         
         for i, category in enumerate(enriched_categories_list):
             mask = cell_categories == category
             count = mask.sum()
             ax.scatter(spatial_coords[mask, 0], spatial_coords[mask, 1],
-                       c=[colors[i]], s=4.0, alpha=0.95,
+                       c=[colors[i]], s=8.0, alpha=0.95,
                        label=f'{category.upper()}: {count:,} cells')
         
         ax.set_title('Gene Interest Spatial Distribution\n(Dynamic Gene Categories)', fontweight='bold', fontsize=14)
@@ -530,13 +541,13 @@ def create_direct_gene_visualization():
             sc = ax.scatter(spatial_coords[:, 0], spatial_coords[:, 1],
                             c=gene_expression,
                             cmap='viridis',
-                            s=3, alpha=0.8, vmin=0, vmax=gene_expression.max())
+                            s=6, alpha=0.8, vmin=0, vmax=gene_expression.max())
             
             ax.set_title(f'Spatial Expression of Gene: {gene_name}',
                          fontweight='bold', fontsize=14)
             ax.set_xlabel('Spatial X (μm)')
             ax.set_ylabel('Spatial Y (μm)')
-            ax.set_aspect('equal', adjustable='box')
+            #ax.set_aspect('equal', adjustable='box')
             
             cbar = fig.colorbar(sc, ax=ax, orientation='vertical', fraction=0.02, pad=0.04)
             cbar.set_label('Gene Expression Level', rotation=270, labelpad=15)
@@ -620,7 +631,7 @@ def create_clean_spatial_visualization_from_direct_results(direct_results, data,
         other_mask = cell_categories == 'Other'
         if other_mask.sum() > 0:
             ax.scatter(spatial_coords[other_mask, 0], spatial_coords[other_mask, 1],
-                      c='whitesmoke', s=0.3, alpha=0.4, edgecolors='lightgray', 
+                      c='whitesmoke', s=5, alpha=0.4, edgecolors='lightgray', 
                       linewidths=0.05, rasterized=True)
         enriched_categories = [cat for cat in cell_categories.unique() if cat != 'Other']
         category_colors = {}
@@ -632,7 +643,7 @@ def create_clean_spatial_visualization_from_direct_results(direct_results, data,
             count = mask.sum()
             percentage = count / len(cell_categories) * 100
             ax.scatter(spatial_coords[mask, 0], spatial_coords[mask, 1],
-                      c=category_colors[category], s=4, alpha=0.9,
+                      c=category_colors[category], s=8, alpha=0.9,
                       label=f'{category.upper()}: {count:,} cells ({percentage:.1f}%)',
                       rasterized=True)
         ax.set_title('Spatial Gene Interest Enrichment\n(Clean View)', 
@@ -644,7 +655,7 @@ def create_clean_spatial_visualization_from_direct_results(direct_results, data,
         ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        ax.set_aspect('equal', adjustable='box')
+        #ax.set_aspect('equal', adjustable='box')
         plt.tight_layout()
         
         clean_plot = os.path.join(output_dir, 'PLOTS', 'INTEREST_ANALYSIS', 'INTEREST_ANALYSIS_CLEAN_SPATIAL.png')
@@ -675,7 +686,7 @@ def create_clean_spatial_visualization_from_direct_results(direct_results, data,
         
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        ax.set_aspect('equal', adjustable='box')
+        #ax.set_aspect('equal', adjustable='box')
         
         plt.tight_layout()
         
@@ -704,7 +715,11 @@ def create_clean_spatial_visualization_from_direct_results(direct_results, data,
         ax1.set_ylabel('Spatial Y (μm)')
         ax1.legend(frameon=False, fontsize=10, markerscale=2)
         ax1.grid(True, alpha=0.2)
-        ax1.set_aspect('equal', adjustable='box')
+        x_range = spatial_coords[:, 0].max() - spatial_coords[:, 0].min()
+        y_range = spatial_coords[:, 1].max() - spatial_coords[:, 1].min()
+        aspect_ratio = x_range / y_range if y_range > 0 else 1
+        ax1.set_aspect(aspect_ratio, adjustable='box')
+        #ax1.set_aspect('equal', adjustable='box')
         for category in enriched_categories:
             mask = cell_categories == category
             ax2.scatter(spatial_coords[mask, 0], spatial_coords[mask, 1],
@@ -716,7 +731,8 @@ def create_clean_spatial_visualization_from_direct_results(direct_results, data,
         ax2.set_ylabel('Spatial Y (μm)')
         ax2.legend(frameon=False, fontsize=10, markerscale=2)
         ax2.grid(True, alpha=0.2)
-        ax2.set_aspect('equal', adjustable='box')
+        ax2.set_aspect(aspect_ratio, adjustable='box')
+        #ax2.set_aspect('equal', adjustable='box')
         
         for ax in [ax1, ax2]:
             ax.spines['top'].set_visible(False)
@@ -3310,8 +3326,8 @@ for cluster_method in clustering_methods:
                 ax.set_aspect('equal')
                 plt.tight_layout()
                 
-                output_file = os.path.join(individual_dir, f'{cluster_method}_CLUSTER_{cluster}_SPATIAL'.upper() + '.png')
-                plt.savefig(output_file, dpi=300, bbox_inches='tight', 
+                summary_file = os.path.join(individual_dir, f'{cluster_method}_CLUSTER_{cluster}_SPATIAL'.upper() + '.png')
+                plt.savefig(summary_file, dpi=300, bbox_inches='tight', 
                            facecolor='white', edgecolor='none', pad_inches=0.2)
                 plt.close()
                 
@@ -3793,35 +3809,357 @@ log_step(f"Results location: {output_dir}")
 log_step("="*100)
 
 EOF
+echo "==========================================="
+echo "Primary Script created successfully!"
+echo "==========================================="
 
+
+# Generate analysis script
 echo "==========================================="
-echo "Script created successfully!"
+echo "Creating Secondary Script!"
+echo "==========================================="
+cat > bin/SCRIPT_SECONDARY_ANALYSIS.py << EOF
+#!/usr/bin/env python3
+# Import dependencies
+import os
+from datetime import datetime
+
+# Find the latest RESULTS folder
+results_folders = [d for d in os.listdir('.') if d.startswith('RESULTS_') and os.path.isdir(d)]
+if not results_folders:
+    print("ERROR: No RESULTS folder found!")
+    exit(1)
+
+latest_results = sorted(results_folders)[-1]
+print(f"Working on: {latest_results}")
+
+# Generate Summary File
+summary_file = os.path.join(latest_results, 'SECONDARY_ANALYSIS_SUMMARY.txt')
+with open(summary_file, 'w') as f:
+    f.write("=" * 50 + "\n")
+    f.write("SECONDARY ANALYSIS\n")
+    f.write("=" * 50 + "\n")
+    f.write(f"Execution time: {datetime.now()}\n")
+    f.write(f"Results folder: {latest_results}\n")
+    f.write("\n")
+    f.write("Contents of results folder:\n")
+    
+    # List all files in the results folder
+    for item in sorted(os.listdir(latest_results)):
+        item_path = os.path.join(latest_results, item)
+        if os.path.isfile(item_path):
+            size = os.path.getsize(item_path)
+            f.write(f"  [FILE] {item} ({size} bytes)\n")
+        elif os.path.isdir(item_path):
+            f.write(f"  [DIR]  {item}/\n")
+
+# Function 1
+
+# Finish script
+with open(summary_file, 'a') as f:
+    f.write("\n" + "=" * 50 + "\n")
+    f.write("Secondary Analysis completed successfully!\n")
+    f.write("=" * 50 + "\n")
+print("Secondary analysis test completed!")
+EOF
+echo "==========================================="
+echo "Secondary Script created successfully!"
 echo "==========================================="
 
-# Execute the analysis
+# Generate NETWORK (R) analysis script
 echo "==========================================="
-echo "Starting analysis"
+echo "Creating NETWORK Analysis Script (R)..."
 echo "==========================================="
-echo ""
+cat > bin/SCRIPT_NETWORK_ANALYSIS.r << 'EOF'
+lib_path <- paste0(getwd(), "/R_libs")
+if(!dir.exists(lib_path)) dir.create(lib_path)
+.libPaths(c(lib_path, .libPaths()))
 
-$ST_PYTHON bin/SPATIAL_ANALYSIS_SCRIPT.py
+# Check and install packages
+install_if_missing <- function(pkg) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg, lib = lib_path, repos = "https://cloud.r-project.org")
+  }
+}
+
+# Dependencies
+needed_pkgs <- c("Seurat", "WGCNA", "tidyverse", "Matrix")
+lapply(needed_pkgs, install_if_missing)
+
+library(Seurat)
+library(WGCNA)
+library(tidyverse)
+library(Matrix)
+
+options(stringsAsFactors = FALSE)
+enableWGCNAThreads(nThreads = 10)
+
+# Find lastest FOLDER
+all_dirs <- list.dirs("..", full.names = TRUE, recursive = FALSE)
+results_dirs <- all_dirs[grepl("/RESULTS_", all_dirs)]
+
+if (length(results_dirs) == 0) {
+    stop("ERROR: No RESULTS folder found (RESULTS_*)")
+}
+
+latest_results <- sort(results_dirs, decreasing = TRUE)[1]
+cat(paste0("Working on: ", latest_results, "\n"))
+
+# Set working directory to the results folder
+setwd(latest_results)
+
+# Setup Network subdirectory
+output_dir <- "NETWORK/"
+if(!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+project_name <- sub("RESULTS_", "", basename(latest_results))
+cat(paste0("Project Name: ", project_name, "\n"))
+checkpoint_file <- paste0(output_dir, "WGCNA_INTERMEDIATE_DATA.rds")
+
+if (file.exists(checkpoint_file)) {
+    cat("\n[CHECKPOINT] Loading previous progress\n")
+    checkpoint_data <- readRDS(checkpoint_file)
+    datExpr <- checkpoint_data$datExpr
+    TOM <- checkpoint_data$TOM
+    geneTree <- checkpoint_data$geneTree
+    mergedColors <- checkpoint_data$mergedColors
+    mergedMEs <- checkpoint_data$mergedMEs
+} else {
+    cat("\n[PROCESS] Starting full processing\n")
+    
+    # Load data from within the results folder
+    hvg_matrix_path <- "EXPORTS/HVG_EXPRESSION_MATRIX.csv"
+
+    if (!file.exists(hvg_matrix_path)) {
+        stop(paste("ERROR: HVG Matrix not found at", hvg_matrix_path))
+    }
+
+    cat("\n[PROCESS] Loading HVG matrix from EXPORTS\n")
+    
+    counts_raw <- read.csv(hvg_matrix_path, row.names = 1, check.names = FALSE)
+    counts_seurat <- t(as.matrix(counts_raw))
+    seurat_obj <- CreateSeuratObject(counts = counts_seurat, project = project_name)
+    seurat_obj <- NormalizeData(seurat_obj, verbose = FALSE)
+    seurat_obj <- FindVariableFeatures(seurat_obj, nfeatures = 2000, verbose = FALSE)
+    seurat_obj <- ScaleData(seurat_obj, verbose = FALSE)
+    seurat_obj <- RunPCA(seurat_obj, npcs = 50, verbose = FALSE)
+
+    # Metacells
+    k_value <- 25
+    pca_embeddings <- Embeddings(seurat_obj, reduction = "pca")[, 1:30]
+    set.seed(12345)
+    km_result <- kmeans(pca_embeddings, centers = k_value, iter.max = 100, nstart = 25)
+    expr_matrix <- GetAssayData(seurat_obj, assay = "RNA", layer = "data")
+    metacell_expr <- matrix(0, nrow = nrow(expr_matrix), ncol = k_value)
+    rownames(metacell_expr) <- rownames(expr_matrix)
+    colnames(metacell_expr) <- paste0("MC_", 1:k_value)
+    for(i in 1:k_value) {
+        cluster_cells <- which(km_result$cluster == i)
+        if(length(cluster_cells) > 0) {
+            metacell_expr[, i] <- Matrix::rowMeans(expr_matrix[, cluster_cells, drop = FALSE])
+        }
+    }
+
+    # WGCNA
+    datExpr <- as.data.frame(t(metacell_expr))
+    vars <- apply(datExpr, 2, var)
+    bad_genes <- names(vars[vars == 0 | is.na(vars)])
+    if(length(bad_genes) > 0) {
+        write.table(bad_genes, paste0(output_dir, "INITIAL_DISCARD_GSG.txt"), row.names=F, col.names=F, quote=F)
+        datExpr <- datExpr[, !colnames(datExpr) %in% bad_genes]
+    }
+
+    # Thresholding and TOM
+    powers <- c(seq(1, 10, by = 1), seq(12, 30, by = 2))
+    sft <- pickSoftThreshold(datExpr, powerVector = powers, networkType = "unsigned", verbose = 5)
+    selected_power <- sft$powerEstimate
+    if(is.na(selected_power)) selected_power <- 6
+
+    adjacency <- adjacency(datExpr, power = selected_power, type = "unsigned")
+    TOM <- TOMsimilarity(adjacency)
+    dissTOM <- 1 - TOM
+    geneTree <- hclust(as.dist(dissTOM), method = "average")
+    dynamicMods <- cutreeDynamic(dendro = geneTree, distM = dissTOM, deepSplit = 2, pamRespectsDendro = FALSE, minClusterSize = 30)
+    dynamicColors <- labels2colors(dynamicMods)
+    merge <- mergeCloseModules(datExpr, dynamicColors, cutHeight = 0.25, verbose = 3)
+    mergedColors <- merge$colors
+    mergedMEs <- merge$newMEs
+
+    saveRDS(list(datExpr=datExpr, TOM=TOM, geneTree=geneTree, mergedColors=mergedColors, mergedMEs=mergedMEs), checkpoint_file)
+}
+
+# Export Results
+kME <- cor(datExpr, mergedMEs, use = "p")
+modules_df <- data.frame(gene_name = colnames(datExpr), module = mergedColors, color = mergedColors, stringsAsFactors = FALSE)
+modules_df$kME <- sapply(1:nrow(modules_df), function(i) {
+    mod <- modules_df$module[i]
+    me_col <- paste0("ME", mod)
+    if(me_col %in% colnames(kME)) return(kME[i, me_col]) else return(NA)
+})
+
+threshold <- 0.15
+all_edges_list <- list()
+for(mod in unique(mergedColors)) {
+    mod_genes <- modules_df %>% filter(module == mod) %>% pull(gene_name)
+    mod_idx <- which(colnames(datExpr) %in% mod_genes)
+    if(length(mod_genes) < 2) next
+    tom_sub <- TOM[mod_idx, mod_idx]
+    rownames(tom_sub) <- colnames(tom_sub) <- mod_genes
+    edges_mod <- as.data.frame(as.table(tom_sub)) %>%
+        filter(Freq > threshold & Var1 != Var2) %>%
+        rename(fromNode = Var1, toNode = Var2, weight = Freq)
+    if(nrow(edges_mod) > 0) {
+        edges_mod <- edges_mod[as.character(edges_mod$fromNode) < as.character(edges_mod$toNode), ]
+        all_edges_list[[mod]] <- edges_mod
+        write.table(edges_mod, paste0(output_dir, mod, "_EDGE.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+    }
+    write.table(modules_df %>% filter(module == mod), paste0(output_dir, mod, "_NODE.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+}
+exports_dir <- "EXPORTS/"
+if(!dir.exists(exports_dir)) dir.create(exports_dir, recursive = TRUE)
+edge_filename <- paste0(exports_dir, project_name, "_FULL_EDGES.txt")
+node_filename <- paste0(exports_dir, project_name, "_FULL_NODES.txt")
+cat(paste0("Exporting Complete Edges and Nodes files for visualization: ", exports_dir, "\n"))
+write.table(bind_rows(all_edges_list), edge_filename, sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(modules_df, node_filename, sep = "\t", quote = FALSE, row.names = FALSE)
+EOF
+
+# Dynamic analysis selection
+case $ANALYSIS in
+    1)
+        echo "==========================================="
+        echo "Executing PRIMARY ANALYSIS..."
+        echo "==========================================="
+        $ST_PYTHON bin/SCRIPT_PRIMARY_ANALYSIS.py
+        EXIT_CODE=$?
+        ;;
+    2)
+        echo "==========================================="
+        echo "Executing SECONDARY ANALYSIS..."
+        echo "==========================================="
+        
+        # Find and decompress the latest results folder
+        LATEST_COMPRESSED=$(ls -t RESULTS_*.tar.gz 2>/dev/null | head -1)
+        
+        if [ -z "$LATEST_COMPRESSED" ]; then
+            echo "ERROR: No compressed results folder found (RESULTS_*.tar.gz)"
+            echo "Please run PRIMARY ANALYSIS (ANALYSIS=1) first"
+            exit 1
+        fi
+        
+        echo "Found compressed results: $LATEST_COMPRESSED"
+        echo "Decompressing..."
+        
+        tar -xzf "$LATEST_COMPRESSED"
+        
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Failed to decompress $LATEST_COMPRESSED"
+            exit 1
+        fi
+        
+        # Get the decompressed folder name (remove .tar.gz extension)
+        RESULTS_FOLDER="${LATEST_COMPRESSED%.tar.gz}"
+        echo "Decompressed to: $RESULTS_FOLDER"
+        echo "==========================================="
+        
+        # Execute secondary analysis
+        $ST_PYTHON bin/SCRIPT_SECONDARY_ANALYSIS.py
+        EXIT_CODE=$?
+        ;;
+3)
+        echo "==========================================="
+        echo "Executing NETWORK ANALYSIS (hdWGCNA)"
+        echo "==========================================="
+
+        # Find and decompress the latest results folder
+        LATEST_COMPRESSED=$(ls -t RESULTS_*.tar.gz 2>/dev/null | head -1)
+        if [ -z "$LATEST_COMPRESSED" ]; then
+            echo "ERROR: No compressed results folder found (RESULTS_*.tar.gz)"
+            exit 1
+        fi
+
+        echo "Found compressed results: $LATEST_COMPRESSED"
+        tar -xzf "$LATEST_COMPRESSED"
+        RESULTS_FOLDER="${LATEST_COMPRESSED%.tar.gz}"
+        
+        # Enter folder and prepare environment
+        cd "$RESULTS_FOLDER" || exit 1
+        mkdir -p NETWORK
+        
+        echo "[$(date +%H:%M:%S)] Loading Environment for R..."
+        module load miniconda3
+        source $(conda info --base)/etc/profile.d/conda.sh
+        conda activate hdWGCNA
+
+        # Setup Library Paths (as per your specific server needs)
+        export MODERN_LIB="/Storage/progs/miniconda3/pkgs/libstdcxx-15.2.0-h8f9b012_7/lib"
+        export LD_LIBRARY_PATH=$MODERN_LIB:$LD_LIBRARY_PATH
+        ulimit -Sn 4000
+
+        # Execute R script (pointing back to bin/)
+        echo "[$(date +%H:%M:%S)] Running Rscript..."
+        Rscript ../bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | tee LOGS/NETWORK_ANALYSIS.log
+        
+        EXIT_CODE=${PIPESTATUS[0]}
+        
+        # 5. Return to root and cleanup
+        conda deactivate
+        cd ..
+        
+        if [ $EXIT_CODE -eq 0 ]; then
+            echo "SUCCESS: Network analysis finished. Results in $RESULTS_FOLDER/NETWORK"
+        else
+            echo "ERROR: Network analysis failed."
+        fi
+        ;;
+esac
+
+# Check analysis execution status
+if [ $EXIT_CODE -eq 0 ]; then
+    echo ""
+    echo "=========================================="
+    echo "  Analysis $ANALYSIS completed successfully!"
+    echo "=========================================="
+else
+    echo ""
+    echo "=========================================="
+    echo "  ERROR: Analysis $ANALYSIS failed (exit code: $EXIT_CODE)"
+    echo "=========================================="
+    exit $EXIT_CODE
+fi
+
 echo "==========================================="
 echo "Final system status:"
 free -h
 echo "==========================================="
 
-if [ $? -eq 0 ]; then
+# Finish: Move logs and compress results
+if [ $EXIT_CODE -eq 0 ]; then
     echo ""
     echo "==========================================="
     echo "ANALYSIS COMPLETED SUCCESSFULLY!"
     date
-    LATEST_RESULTS=$(ls -td RESULTS_* | head -1)
-    if [ -n "$LATEST_RESULTS" ]; then
-        echo "MOVING LOGS TO RESULTS FOLDER ($LATEST_RESULTS), COMPRESSING AND REMOVING ORIGINAL FOLDER"
+    
+    if [ $ANALYSIS -eq 2 ]; then
+        LATEST_RESULTS="$RESULTS_FOLDER"
+    else
+        LATEST_RESULTS=$(ls -td RESULTS_* 2>/dev/null | grep -v ".tar.gz" | head -1)
+    fi
+    
+    if [ -n "$LATEST_RESULTS" ] && [ -d "$LATEST_RESULTS" ]; then
+        echo "MOVING LOGS TO RESULTS FOLDER ($LATEST_RESULTS)"
         echo "==========================================="
         cp "SPATIAL_ANALYSYS_${JOB_ID}.out" "$LATEST_RESULTS/" 2>/dev/null
         cp "SPATIAL_ANALYSIS_${JOB_ID}.err" "$LATEST_RESULTS/" 2>/dev/null
+        
+        # Remove old compressed version if doing secondary analysis
+        if [ $ANALYSIS -eq 2 ] && [ -f "${LATEST_RESULTS}.tar.gz" ]; then
+            echo "Removing old compressed version..."
+            rm -f "${LATEST_RESULTS}.tar.gz"
+        fi
+        
+        echo "COMPRESSING RESULTS"
         tar -czf "${LATEST_RESULTS}.tar.gz" "$LATEST_RESULTS"
+        
         if [ -f "${LATEST_RESULTS}.tar.gz" ]; then
             echo "COMPRESSION SUCCESSFUL. REMOVING FOLDER"
             rm -rf "$LATEST_RESULTS"
@@ -3830,6 +4168,8 @@ if [ $? -eq 0 ]; then
         else
             echo "ERROR: COMPRESSION FAILED."
         fi
+    else
+        echo "WARNING: No results folder found to compress"
     fi
     echo "==========================================="
     echo ""

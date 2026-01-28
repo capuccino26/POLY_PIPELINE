@@ -38,7 +38,7 @@ The core scripts are optimized for **SGE cluster** execution. They use **relativ
 The input file must be the [`.gef`](https://www.processon.com/view/link/610cc49c7d9c087bbd1ab7ab#map) file (post-processed by the [**SAW pipeline**](https://github.com/STOmics/SAW)). It **must be placed** in the `INPUT/datasets/` folder.
 > **IMPORTANT:** Place **only one** `.gef` file in the `datasets` folder.
 
-It is possible **(BUT NOT REQUIRED)** to generate differential analysis for a list of genes of interest, generate the file `INPUT/datasets/interest_genes.txt` following the structure:
+It is possible **(BUT NOT REQUIRED)** to generate differential analysis for a list of genes of interest, generate the file `INPUT/interest_genes.txt`, or use the explicit path (check below for information) following the structure:
 ```markdown
 gene_name,Gene_ID_1,Gene_ID_2,Gene_ID_3,Gene_ID_4,Gene_ID_5
 FLORAL_MERISTEM,AT5G08570,LOC107775591,Nicotiana_T001,LOC107775592
@@ -71,6 +71,7 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     | `PCT_COUNTS_MT` | Acceptable percentage of mitochondrial genes. |
     | `N_PCS` | Number of principal components. This step can be inproved after first run. Check the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS |
     | `ANALYSIS` | *(Optional)* Select the type of analysis (check below for details): [1 - standard] Primary analysis, [2] Secondary analysis, [3] Network Analysis |
+    | `INTEREST_GENES_PATH` | *(Optional)* Select the list of candidate genes for analysis (see above). The scripts search for "INPUT/interest_genes.txt" as standard, use explicit path for custom list: INTEREST_GENES_PATH="/Storage/user/file_name.txt" |
     | `MIN_X` | *(Optional)* Minimum X coordinate for spatial filtering. |
     | `MAX_X` | *(Optional)* Maximum X coordinate for spatial filtering. |
     | `MIN_Y` | *(Optional)* Minimum Y coordinate for spatial filtering. |

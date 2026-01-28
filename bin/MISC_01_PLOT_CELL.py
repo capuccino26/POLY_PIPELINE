@@ -12,7 +12,7 @@ import sys
 
 # Function for logging stamps
 def log_step(message):
-    timestamp = datetime.datetime.now().strftime("%H:%M:%S") # <-- NOTE: datetime is called as datetime.datetime here
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
     print(f"[{timestamp}] {message}")
     sys.stdout.flush()
 
