@@ -72,7 +72,7 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     | `MIN_GENES` | Minimum number of genes per cell. | - |
     | `PCT_COUNTS_MT` | Acceptable percentage of mitochondrial genes. | - |
     | `N_PCS` | Number of principal components. This step can be inproved after first run. Check the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS | - |
-    | `ANALYSIS` | *(Optional)* Select the type of analysis (check below for details): [1] Primary analysis, [2] Secondary analysis, [3] Network Analysis | 1 |
+    | `ANALYSIS` | *(Optional)* Select the type of analysis (check below for details): [0] Converter, [1] Primary analysis, [2] Secondary analysis, [3] Network Analysis | 1 |
     | `INTEREST_GENES_PATH` | *(Optional)* Select the list of candidate genes for analysis (see above). use explicit path for custom list: INTEREST_GENES_PATH="/Storage/user/file_name.txt" | "INPUT/interest_genes.txt" |
     | `EXPRESSION_THR` | *(Optional)* Set expression threshold for Interest Genes filtering. | 1.0 |
     | `MIN_X` | *(Optional)* Minimum X coordinate for spatial filtering. | - |
