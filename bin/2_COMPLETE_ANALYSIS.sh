@@ -4,7 +4,7 @@
 #$ -pe smp 16
 #$ -l h_vmem=12G
 #$ -N STEREOPY_ANALYSIS
-#$ -o SPATIAL_ANALYSYS_$JOB_ID.out
+#$ -o SPATIAL_ANALYSIS_$JOB_ID.out
 #$ -e SPATIAL_ANALYSIS_$JOB_ID.err
 
 echo "==========================================="
@@ -94,8 +94,8 @@ echo ""
 
 # Define analysis (1 for primary, 2 for secondary)
 ANALYSIS=${ANALYSIS:-1}
-if [[ ! "$ANALYSIS" =~ ^[123]$ ]]; then
-    echo "ERROR: ANALYSIS must be primary [1], secondary [2], network [3]"
+if [[ ! "$ANALYSIS" =~ ^[0123]$ ]]; then
+    echo "ERROR: ANALYSIS must be primary [1], secondary [2], network [3] or converter [0]"
     echo "Provided: ANALYSIS=$ANALYSIS"
     exit 1
 fi
@@ -116,6 +116,20 @@ HVG_DISP=${HVG_DISP:-0.5}
 HVG_TOP=${HVG_TOP:-2000}
 INTEREST_GENES_PATH=${INTEREST_GENES_PATH:-"INPUT/interest_genes.txt"}
 EXPRESSION_THR=${EXPRESSION_THR:-1.0}
+INPUT_PATH=${INPUT_PATH:-""}
+if [ -n "$INPUT_PATH" ]; then
+    CLEAN_PATH="${INPUT_PATH%/}"
+    
+    if [ -d "$CLEAN_PATH" ]; then
+        BASE_DIR="$CLEAN_PATH"
+    else
+        BASE_DIR=$(dirname "$CLEAN_PATH")
+    fi
+    
+    OUTPUT_DIR="$BASE_DIR/CONVERTER_RESULTS"
+else
+    OUTPUT_DIR="./CONVERTER_RESULTS"
+fi
 
 echo "Filtering Parameters Used:"
 echo "  Minimum counts: $MIN_COUNTS"
@@ -813,7 +827,7 @@ timestamp = start_time.strftime("%Y%m%d_%H%M")
 data_path = get_single_gef_file()
 sample_id = os.path.splitext(os.path.basename(data_path))[0].replace('.', '_')
 output_dir = f'RESULTS_{sample_id}_{timestamp}'
-print(f"RESULT_FOLDER_PATH:{output_dir}")
+log_step(f"RESULT_FOLDER_PATH:{output_dir}")
 
 # Directory structure
 directories = [
@@ -4132,6 +4146,131 @@ echo "==========================================="
 echo "Secondary Script created successfully!"
 echo "==========================================="
 
+
+echo "==========================================="
+echo "Creating Converter Script..."
+echo "==========================================="
+cat > bin/SCRIPT_CONVERTER.py << EOF
+#!/usr/bin/env python3
+import stereo as st
+import os
+import warnings
+import h5py
+import numpy as np
+import time
+from datetime import datetime
+import glob
+import pandas as pd
+import sys
+
+# Ignore warnings
+warnings.filterwarnings('ignore')
+
+# Parameters
+INPUT_PATH = "$INPUT_PATH"
+OUTPUT_DIR = "$OUTPUT_DIR"
+BIN_SIZE = $BIN_SIZE
+
+# Function for logging stamps
+def log_step(message):
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {message}")
+    sys.stdout.flush()
+
+# Function to get bin files
+def get_available_bins_from_file(file_path, file_ext):
+    if file_ext == '.gem':
+        return "User Defined"
+    bins = []
+    try:
+        with h5py.File(file_path, 'r') as f:
+            if 'geneExp' in f:
+                bins = [b.replace('bin', '') for b in f['geneExp'].keys()]
+            elif 'cellBin' in f:
+                bins.append('cellBin')
+            else:
+                bins.append('1 (default)')
+    except:
+        return "Unknown"
+    return ", ".join(bins) if bins else "Standard"
+
+def generate_detailed_stats(data, output_dir, base_name, requested_bin):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    summary_file = os.path.join(output_dir, f"{base_name}_SUMMARY_STATS.txt")
+    current_bin = getattr(data, 'bin_size', 1)
+    
+    with open(summary_file, "w") as f:
+        f.write("="*100 + "\n")
+        f.write(" " * 15 + "GEF FILE STATISTICS\n")
+        f.write("="*100 + "\n\n")
+        if str(requested_bin) != str(current_bin) and requested_bin != 50:
+            f.write(f"Requested Bin: {requested_bin} | Actual Bin Used: {current_bin}\n")
+            f.write(f"Structured files (H5AD/GEF) often have immutable bins.\n\n")
+        f.write(f"1. Data Object Summary:\n{str(data)}\n\n")
+        f.write(f"2. Genes Total: {len(data.gene_names)}\n")
+        f.write(f"3. Cells Total: {len(data.cell_names)}\n")
+        f.write(f"4. Bin Size Used: {current_bin}\n")
+        f.write(f"5. Matrix Shape: {data.exp_matrix.shape}\n")
+        
+    pd.DataFrame(data.gene_names, columns=['gene_name']).to_csv(os.path.join(output_dir, f"{base_name}_GENES.csv"))
+    pd.DataFrame(data.cell_names, columns=['cell_name']).to_csv(os.path.join(output_dir, f"{base_name}_CELLS.csv"))
+
+def convert_file(path):
+    start_time = time.time()
+    file_ext = os.path.splitext(path)[1].lower()
+    if path.endswith('.gem.gz'): file_ext = '.gem'
+
+    base_name = os.path.basename(path).split('.')[0]
+    output_path = os.path.join(OUTPUT_DIR, f"{base_name}.gef")
+    avail = get_available_bins_from_file(path, file_ext)
+    
+    log_step(f"Processing: {os.path.basename(path)}")
+    log_step(f"Format: {file_ext.upper()} | Available bins in input: {avail}")
+
+    try:
+        if file_ext == '.gem':
+            data = st.io.read_gem(file_path=path, bin_type='bins', bin_size=BIN_SIZE, is_sparse=True)
+        elif file_ext == '.h5ad':
+            data = st.io.read_h5ad(path)
+        else:
+            log_step(f"Skipping {path}: Unsupported format.")
+            return
+
+        if not os.path.exists(OUTPUT_DIR): os.makedirs(OUTPUT_DIR)
+        st.io.write_mid_gef(data=data, output=output_path)
+        generate_detailed_stats(data, OUTPUT_DIR, base_name, BIN_SIZE)
+        log_step(f"[FINISH] Created {output_path} in {time.time() - start_time:.2f}s")
+    except Exception as e:
+        log_step(f"[ERROR] Failed to process {path}: {e}")
+
+if __name__ == "__main__":
+    # 1. Check if INPUT_PATH is empty
+    if not INPUT_PATH:
+        log_step("[ERROR] No INPUT_PATH provided.")
+        sys.exit(0)
+
+    # 2. Check if Path exists
+    if not os.path.exists(INPUT_PATH):
+        log_step(f"[ERROR] Path '{INPUT_PATH}' not found.")
+        sys.exit(1)
+
+    # 3. Process File or Directory
+    if os.path.isfile(INPUT_PATH):
+        convert_file(INPUT_PATH)
+    elif os.path.isdir(INPUT_PATH):
+        files = glob.glob(os.path.join(INPUT_PATH, "*.gem*")) + glob.glob(os.path.join(INPUT_PATH, "*.h5ad"))
+        if not files:
+            log_step(f"[ERROR] No compatible files (GEM/H5AD) found in {INPUT_PATH}")
+        for f in files:
+            convert_file(f)
+EOF
+
+echo "==========================================="
+echo "Creating Converter Script..."
+echo "==========================================="
+
 # Generate NETWORK (R) analysis script
 echo "==========================================="
 echo "Creating NETWORK Analysis Script (R)..."
@@ -4291,6 +4430,19 @@ EOF
 
 # Dynamic analysis selection
 case $ANALYSIS in
+    0)
+        echo "==========================================="
+        echo "Executing DATA CONVERSION (GEM/H5AD to GEF)..."
+        echo "==========================================="
+        $ST_PYTHON bin/SCRIPT_CONVERTER.py
+        EXIT_CODE=$?
+        
+        if [ $EXIT_CODE -eq 0 ]; then
+            echo "Conversion finished successfully."
+        else
+            echo "Conversion failed. Check logs."
+        fi
+        ;;
     1)
         echo "==========================================="
         echo "Executing PRIMARY ANALYSIS..."
@@ -4331,7 +4483,7 @@ case $ANALYSIS in
         $ST_PYTHON bin/SCRIPT_SECONDARY_ANALYSIS.py
         EXIT_CODE=$?
         ;;
-3)
+     3)
         echo "==========================================="
         echo "Executing NETWORK ANALYSIS (hdWGCNA)"
         echo "==========================================="
@@ -4399,7 +4551,7 @@ free -h
 echo "==========================================="
 
 # Finish: Move logs and compress results
-if [ $EXIT_CODE -eq 0 ]; then
+if [ $EXIT_CODE -eq 0 ] && [ "$ANALYSIS" -ne 0 ]; then
     echo ""
     echo "==========================================="
     echo "ANALYSIS COMPLETED SUCCESSFULLY!"
@@ -4440,12 +4592,17 @@ if [ $EXIT_CODE -eq 0 ]; then
     echo "==========================================="
     echo ""
 else
-    echo ""
-    echo "==========================================="
-    echo "ANALYSIS FAILED!"
-    date
-    echo "==========================================="
-    echo "Check error logs for details"
-    echo "==========================================="
-    exit 1
+    if [ "$ANALYSIS" -eq 0 ]; then
+        echo "Conversion task finished. Results kept uncompressed for further analysis."
+    else
+        echo ""
+        echo "==========================================="
+        echo "ANALYSIS FAILED!"
+        date
+        echo "==========================================="
+        echo "Check error logs for details"
+        echo "==========================================="
+        exit 1
+    fi
 fi
+
