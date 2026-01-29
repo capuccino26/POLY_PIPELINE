@@ -154,8 +154,9 @@ POLY_PIPELINE/
 └── bin/
     ├── 0_SET_ENV.sh
     ├── 1_TEST_ENV.sh
-    └── 2_COMPLETE_ANALYSIS.py
-
+    ├── 2_COMPLETE_ANALYSIS.py
+    ├── SCRIPT_CONVERTER.py
+    └── SCRIPT_NETWORK_ANALYSIS.r
 ```
 
 ---
