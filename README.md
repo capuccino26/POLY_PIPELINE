@@ -112,7 +112,7 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 
 | Step | Script | Description | Usage | Observations | Standalone | Main Analysis |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| [**File Converter**](bin/SCRIPT_CONVERTER.py) | `bin/SCRIPT_CONVERTER.py` | Script for converting .H5AD and .GEM files to the proper .GEF file prior to main analysis | python bin/SCRIPT_CONVERTER.py | The script generate the converted file and summary informations | Optional | 0 |
+| [**File Converter**](bin/SCRIPT_CONVERTER.py) | `bin/SCRIPT_CONVERTER.py` | Script for converting .H5AD and .GEM files to the proper .GEF file prior to main analysis | python bin/SCRIPT_CONVERTER.py | The script generates the converted file and summary informations | Optional | 0 |
 | [**Network Analysis**](bin/SCRIPT_NETWORK_ANALYSIS.r) | `bin/SCRIPT_NETWORK_ANALYSIS.r` | Script for generating WGCNA network based on the Highly Variable Genes (HVG) generated from the primary analysis. | Rscript bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | The script generates all individual clusters and the complete file for posterior visualization (Cytoscape/others), check guide below | Optional | 3 |
 
 * Standalone scripts should be run locally since they are not included in the main pipeline, all other (Optional) can be run from the main scripts as secondary analysis (check Analysis options section).
