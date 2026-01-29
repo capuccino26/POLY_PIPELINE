@@ -37,6 +37,7 @@ The core scripts are optimized for **SGE cluster** execution. They use **relativ
 ####  Data Input
 The input file must be the [`.gef`](https://www.processon.com/view/link/610cc49c7d9c087bbd1ab7ab#map) file (post-processed by the [**SAW pipeline**](https://github.com/STOmics/SAW)). It **must be placed** in the `INPUT/datasets/` folder.
 > **IMPORTANT:** Place **only one** `.gef` file in the `datasets` folder.
+The script provides a converter (check ANALYSIS [0] below), capable of converting .GEM and .H5AD files to the proper .GEF file prior to execution
 
 It is possible **(BUT NOT REQUIRED)** to generate differential analysis for a list of genes of interest, generate the file `INPUT/interest_genes.txt`, or use the explicit path (check below for information) following the structure:
 ```markdown
@@ -70,7 +71,7 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     | `MIN_GENES` | Minimum number of genes per cell. | - |
     | `PCT_COUNTS_MT` | Acceptable percentage of mitochondrial genes. | - |
     | `N_PCS` | Number of principal components. This step can be inproved after first run. Check the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS | - |
-    | `ANALYSIS` | *(Optional)* Select the type of analysis (check below for details): [1 - standard] Primary analysis, [2] Secondary analysis, [3] Network Analysis | 1 |
+    | `ANALYSIS` | *(Optional)* Select the type of analysis (check below for details): [1] Primary analysis, [2] Secondary analysis, [3] Network Analysis | 1 |
     | `INTEREST_GENES_PATH` | *(Optional)* Select the list of candidate genes for analysis (see above). use explicit path for custom list: INTEREST_GENES_PATH="/Storage/user/file_name.txt" | "INPUT/interest_genes.txt" |
     | `EXPRESSION_THR` | *(Optional)* Set expression threshold for Interest Genes filtering. | 1.0 |
     | `MIN_X` | *(Optional)* Minimum X coordinate for spatial filtering. | - |
@@ -80,7 +81,13 @@ The scripts are submitted with explicit Miniconda and parameter variables (`qsub
     | `HVG_MAX_MEAN` | *(Optional)* Max mean filtering for selection of HVGs. | 3.0 |
     | `HVG_DISP` | *(Optional)* Dispersion filtering for selection of HVGs. | 0.5 |
     | `HVG_TOP` | *(Optional)* Number of top genes selected for HVG filtering. | 2000 |
+    | `INPUT_PATH` | *(Required for analysis [0] Converter)* Input file or folder with files to be converted to .gef format | - |
 
+* Converting files (.GEM or .H5AD) to .GEF prior to primary analysis only requires the input folder or input file, bin size is optional:
+    ```bash
+    qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",INPUT_PATH="path/to/file.h5ad",BIN_SIZE=100,ANALYSIS=0 bin/2_COMPLETE_ANALYSIS.sh
+    qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",INPUT_PATH="path/to/files/",BIN_SIZE=100,ANALYSIS=0 bin/2_COMPLETE_ANALYSIS.sh
+    ```
 * The variables are not required, the script can run with defaults and the entire tissue area.
 * The corret python path (ST_PYTHON) for the server must be selected.
 * If coordinate filtering is required (MIN_X, MAX_X, MIN_Y, MAX_Y), all coordinate parameters must be provided together.
@@ -102,9 +109,10 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 
 ### Miscellaneous Pipeline (Secondary analysis)
 
-| Step | Script | Description | Usage | Observations | Standalone |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| [**Network Analysis**](bin/SCRIPT_NETWORK_ANALYSIS.r) | `bin/SCRIPT_NETWORK_ANALYSIS.r` | Script for generating WGCNA network based on the Highly Variable Genes (HVG) generated from the primary analysis. | Rscript bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | The script generates all individual clusters and the complete file for posterior visualization (Cytoscape/others), check guide below | Optional |
+| Step | Script | Description | Usage | Observations | Standalone | Main Analysis |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| [**File Converter**](bin/SCRIPT_CONVERTER.py) | `bin/SCRIPT_CONVERTER.py` | Script for converting .H5AD and .GEM files to the proper .GEF file prior to main analysis | python bin/SCRIPT_CONVERTER.py | The script generate the converted file and summary informations | Optional | 0 |
+| [**Network Analysis**](bin/SCRIPT_NETWORK_ANALYSIS.r) | `bin/SCRIPT_NETWORK_ANALYSIS.r` | Script for generating WGCNA network based on the Highly Variable Genes (HVG) generated from the primary analysis. | Rscript bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | The script generates all individual clusters and the complete file for posterior visualization (Cytoscape/others), check guide below | Optional | 3 |
 
 * Standalone scripts should be run locally since they are not included in the main pipeline, all other (Optional) can be run from the main scripts as secondary analysis (check Analysis options section).
 * If coordinate filtering is required (min_y, max_y, min_x, max_x), all coordinate parameters must be provided together.
@@ -144,8 +152,7 @@ POLY_PIPELINE/
 └── bin/
     ├── 0_SET_ENV.sh
     ├── 1_TEST_ENV.sh
-    ├── 2_COMPLETE_ANALYSIS.sh
-    └── MISC_01_PLOT_CELL.py
+    └── 2_COMPLETE_ANALYSIS.py
 
 ```
 
