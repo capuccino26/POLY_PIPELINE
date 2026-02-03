@@ -149,8 +149,6 @@ echo " HVG parameters: Min: $HVG_MIN_MEAN; Max: $HVG_MAX_MEAN; Dispersion: $HVG_
 echo "Number of Principal Components used:"
 echo "  $N_PCS"
 echo "  This step can be inproved after first run. Ceck the Elbow Plot (PLOTS/QC/PCA_ELBOW.png) and insert the value of the elbow as N_PCS"
-echo "You can alter the parameters inline:"
-echo "  qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",MIN_COUNTS=50,MIN_GENES=5,PCT_COUNTS_MT=100,N_PCS=30 bin/2_DOC_ANALYSIS.sh"
 echo ""
 
 # Generate analysis script
