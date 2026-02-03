@@ -22,38 +22,51 @@ See the [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 
 ### Initial Setup
 
-The pipeline is designed to be executed from the **main folder** (`POLY_PIPELINE/`).
+* The pipeline is designed to be executed from the **main folder** (`POLY_PIPELINE/`).
 
-# For [SGE clusters] [(https://wiki.archlinux.org/title/Son_of_Grid_Engine) the setup is automated and requires a dedicated Conda environment:
+### For [SGE clusters](https://wiki.archlinux.org/title/Son_of_Grid_Engine) the setup is automated and requires a dedicated Conda environment:
 1.  **Set Environment:**
     * Run `bin/0_SET_ENV.sh` to activate the **`st`** Conda environment, which is essential due to the strict package dependencies of **Stereopy**.
 2.  **Test Environment:**
     * Run `bin/1_TEST_ENV.sh` to verify the installation.
 
-# For [PBS clusters] (https://altair.com/pbs-professional) the internet connection through jobs are usually limited, follow the setup instructions manually:
-1.  ** Setup Container Image **
-    * cd /project/directory/POLY_PIPELINE
-    * module load singularity
-    * singularity pull stereopy_1.5.1.sif docker://mlepetit/stereopy:1.5.1.2
-2.  ** Verify installation inside Container **
-    * module load singularity
-    * singularity exec stereopy_1.5.1.sif python3 -c "import stereo as st; print(f'Stereopy version: {st.__version__}')"
-3.  ** Use the correct directory for job submission (check below for further instructions about variables):**
-    * qsub -v ST_PYTHON="/project/directory/POLY_PIPELINE/POLY_PIPELINE/stereopy_1.5.1.sif" bin/2_COMPLETE_ANALYSIS.sh
-4. ** Setup Container for hdWGCNA (secondary analysis)**
-    * cd /project/directory/POLY_PIPELINE
-    * module load singularity
-    * singularity pull r_hdwgcna.sif docker://satijalab/seurat:latest
-5. ** Install hdWGCNA (Recommended use TMUX or SCREEN) **
-    * mkdir -p /project/directory/POLY_PIPELINE/R_libs_hdwgcna
-    * module load singularity
-    * singularity exec -B /project/directory/POLY_PIPELINE r_hdwgcna.sif Rscript -e "lib_path <- '/project/directory/POLY_PIPELINE/R_libs_hdwgcna';install.packages(c('BiocManager', 'devtools', 'tester', 'enrichR', 'fastcluster', 'dynamicTreeCut', 'ggforce', 'tidygraph', 'graphlayouts', 'Hmisc', 'foreach', 'doParallel'), repos='https://cloud.r-project.org', lib=lib_path);BiocManager::install(c('WGCNA', 'GeneOverlap', 'UCell', 'enrichr', 'impute', 'preprocessCore', 'GO.db', 'GenomicRanges'), lib=lib_path, update=FALSE, ask=FALSE);devtools::install_github('smorabit/hdWGCNA', ref='dev', lib=lib_path);"
-6. ** Verify installation **
-    * export R_LIBS_USER="/project/directory/POLY_PIPELINE/R_libs_hdwgcna"
-    * singularity exec -B /project/directory/POLY_PIPELINE r_hdwgcna.sif Rscript -e ".libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths()));library(WGCNA);library(hdWGCNA);cat('\nSuccess!\n')"
-7. ** Use the correct directry for job submission (check below for further instructions about variables):**
-    * qsub -v ST_PYTHON="/project/directory/POLY_PIPELINE/stereopy_1.5.1.sif",R_CONTAINER="/project/directory/POLY_PIPELINE/r_hdwgcna.sif",ANALYSIS=3 bin/2_COMPLETE_ANALYSIS.sh
-
+### For [PBS clusters](https://altair.com/pbs-professional) the internet connection through jobs are usually limited, follow the setup instructions manually:
+1.  **Setup Container Image**
+    ```bash
+    cd /project/directory/POLY_PIPELINE
+    module load singularity
+    singularity pull stereopy_1.5.1.sif docker://mlepetit/stereopy:1.5.1.2
+    ```
+2.  **Verify installation inside Container**
+    ```bash
+    module load singularity
+    singularity exec stereopy_1.5.1.sif python3 -c "import stereo as st; print(f'Stereopy version: {st.__version__}')"
+    ```
+3.  **Use the correct directory for job submission (check below for further instructions about variables):**
+    ```bash
+    qsub -v ST_PYTHON="/project/directory/POLY_PIPELINE/POLY_PIPELINE/stereopy_1.5.1.sif" bin/2_COMPLETE_ANALYSIS.sh
+    ```
+4.  **Setup Container for hdWGCNA (secondary analysis)**
+    ```bash
+    cd /project/directory/POLY_PIPELINE
+    module load singularity
+    singularity pull r_hdwgcna.sif docker://satijalab/seurat:latest
+    ```
+5.  **Install hdWGCNA (Recommended use TMUX or SCREEN)**
+    ```bash
+    mkdir -p /project/directory/POLY_PIPELINE/R_libs_hdwgcna
+    module load singularity
+    singularity exec -B /project/directory/POLY_PIPELINE r_hdwgcna.sif Rscript -e "lib_path <- '/project/directory/POLY_PIPELINE/R_libs_hdwgcna';install.packages(c('BiocManager', 'devtools', 'tester', 'enrichR', 'fastcluster', 'dynamicTreeCut', 'ggforce', 'tidygraph', 'graphlayouts', 'Hmisc', 'foreach', 'doParallel'), repos='https://cloud.r-project.org', lib=lib_path);BiocManager::install(c('WGCNA', 'GeneOverlap', 'UCell', 'enrichr', 'impute', 'preprocessCore', 'GO.db', 'GenomicRanges'), lib=lib_path, update=FALSE, ask=FALSE);devtools::install_github('smorabit/hdWGCNA', ref='dev', lib=lib_path);"
+    ```
+6.  **Verify installation**
+    ```bash
+    export R_LIBS_USER="/project/directory/POLY_PIPELINE/R_libs_hdwgcna"
+    singularity exec -B /project/directory/POLY_PIPELINE r_hdwgcna.sif Rscript -e ".libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths()));library(WGCNA);library(hdWGCNA);cat('\nSuccess!\n')"
+    ```
+7.  **Use the correct directry for job submission (check below for further instructions about variables):**
+    ```bash
+    qsub -v ST_PYTHON="/project/directory/POLY_PIPELINE/stereopy_1.5.1.sif",R_CONTAINER="/project/directory/POLY_PIPELINE/r_hdwgcna.sif",ANALYSIS=3 bin/2_COMPLETE_ANALYSIS.sh
+    ```
 ---
 
 ### Main Pipeline (Cluster Execution - SGE)
@@ -117,12 +130,14 @@ The scripts are submitted with explicit Miniconda or docker image paths and para
     | `INPUT_PATH` | *(Required for analysis [0] Converter)* Input file or folder with files to be converted to .gef format | - |
 
 * Converting files (.GEM or .H5AD) to .GEF prior to primary analysis only requires the input folder or input file, bin size is optional:
-    ** SGE
+
+* **SGE**
     ```bash
     qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",INPUT_PATH="path/to/file.h5ad",BIN_SIZE=100,ANALYSIS=0 bin/2_COMPLETE_ANALYSIS.sh
     qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",INPUT_PATH="path/to/files/",BIN_SIZE=100,ANALYSIS=0 bin/2_COMPLETE_ANALYSIS.sh
     ```
-    ** PBS
+
+* **PBS**
     ```bash
     qsub -v ST_PYTHON="/project/directory/POLY_PIPELINE/stereopy_1.5.1.sif",ANALYSIS=0,INPUT_PATH="path/to/file.h5ad",BIN_SIZE=50 bin/2_COMPLETE_ANALYSIS.sh
     qsub -v ST_PYTHON="/project/directory/POLY_PIPELINE/stereopy_1.5.1.sif",ANALYSIS=0,INPUT_PATH="path/to/files/",BIN_SIZE=50 bin/2_COMPLETE_ANALYSIS.sh
