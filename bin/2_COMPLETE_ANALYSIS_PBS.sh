@@ -1,18 +1,8 @@
 #!/bin/bash
-# --- SGE Directives ---
-#$ -V
-#$ -cwd
-#$ -pe smp 16
-#$ -l h_vmem=12G
-#$ -N STEREOPY_ANALYSIS
-#$ -o SPATIAL_ANALYSIS_$JOB_ID.out
-#$ -e SPATIAL_ANALYSIS_$JOB_ID.err
-
-# --- PBS Directives (Gadi) ---
 #PBS -N STEREOPY_ANALYSIS
 #PBS -P ji21
-#PBS -q normal
-#PBS -l walltime=10:00:00
+#PBS -q normalbw
+#PBS -l walltime=01:00:00
 #PBS -l ncpus=16
 #PBS -l mem=128GB
 #PBS -l jobfs=10GB
@@ -21,37 +11,7 @@
 #PBS -o SPATIAL_ANALYSIS.out
 #PBS -e SPATIAL_ANALYSIS.err
 
-# Detect project base for PBS
-CURRENT_ROOT=$(pwd | cut -d'/' -f1-3)
-SCRATCH_ROOT=$(echo $CURRENT_ROOT | sed 's/gdata/scratch/')
-
-if [[ "$ST_PYTHON" == *.sif ]]; then
-    # PBS Mode
-    module load singularity
-    ST_PYTHON="singularity exec -B $CURRENT_ROOT,$SCRATCH_ROOT $ST_PYTHON python3"
-    echo "Running via Singularity on $CURRENT_ROOT"
-else
-    # SGE Mode
-    echo "Running via Standard Python (SGE)"
-fi
-
-# Setup R Execution environment for PBS
-if [[ "$R_CONTAINER" == *.sif ]]; then
-    # PBS Mode
-    module load singularity
-    export R_LIBS_USER="$(pwd)/R_libs_hdwgcna"
-    
-    ST_R="singularity exec --env R_LIBS_USER=$R_LIBS_USER -B $CURRENT_ROOT,$SCRATCH_ROOT $R_CONTAINER Rscript"
-    
-    echo "R running via Singularity: $R_CONTAINER"
-    echo "Libs path: $R_LIBS_USER"
-else
-    # SGE Mode
-    module load R/4.3.1
-    export R_LIBS_USER=~/.local/R/library
-    ST_R="Rscript"
-    echo "R running via Standard Rscript"
-fi
+IMAGE="/g/data/ji21/users/pc1837/POLY_PIPELINE/stereopy_1.5.1.sif"
 
 echo "==========================================="
 echo "STEREOPY ANALYSIS"
@@ -77,7 +37,7 @@ echo "Loading singularity"
 module load singularity
 
 echo "Verifying all dependencies"
-$ST_PYTHON -c "
+singularity exec -B /g/data/ji21,/scratch/ji21 $IMAGE python3 -c "
 # Function for logging stamps
 import sys
 from datetime import datetime
@@ -4285,34 +4245,23 @@ echo "==========================================="
 echo "Creating NETWORK Analysis Script (R)..."
 echo "==========================================="
 cat > bin/SCRIPT_NETWORK_ANALYSIS.r << 'EOF'
-custom_lib <- Sys.getenv("R_LIBS_USER")
-cat(paste("Debug: R_LIBS_USER is", custom_lib, "\n"))
-if (custom_lib != "" && dir.exists(custom_lib)) {
-    # PBS/Gadi Mode
-    .libPaths(c(custom_lib, .libPaths()))
-    cat(paste("PBS Mode: Using pre-installed library:", custom_lib, "\n"))
-} else {
-    # SGE Mode
-    lib_path <- paste0(getwd(), "/R_libs")
-    if(!dir.exists(lib_path)) dir.create(lib_path, recursive = TRUE)
-    .libPaths(c(lib_path, .libPaths()))
-    cat(paste("SGE Mode: Using local library:", lib_path, "\n"))
-    
-    # Check and install packages
-if (Sys.getenv("R_CONTAINER") == "") {
-        install_if_missing <- function(pkg) {
-            if (!requireNamespace(pkg, quietly = TRUE)) {
-                install.packages(pkg, lib = lib_path, repos = "https://cloud.r-project.org")
-            }
-        }
-        needed_pkgs <- c("Seurat", "WGCNA", "tidyverse", "Matrix")
-        lapply(needed_pkgs, install_if_missing)
-    }
+lib_path <- paste0(getwd(), "/R_libs")
+if(!dir.exists(lib_path)) dir.create(lib_path)
+.libPaths(c(lib_path, .libPaths()))
+
+# Check and install packages
+install_if_missing <- function(pkg) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg, lib = lib_path, repos = "https://cloud.r-project.org")
+  }
 }
+
+# Dependencies
+needed_pkgs <- c("Seurat", "WGCNA", "tidyverse", "Matrix")
+lapply(needed_pkgs, install_if_missing)
 
 library(Seurat)
 library(WGCNA)
-library(hdWGCNA)
 library(tidyverse)
 library(Matrix)
 
@@ -4423,32 +4372,15 @@ modules_df$kME <- sapply(1:nrow(modules_df), function(i) {
 
 threshold <- 0.15
 all_edges_list <- list()
-
-# Detect environment inside R
-is_pbs <- Sys.getenv("R_CONTAINER") != ""
-
 for(mod in unique(mergedColors)) {
     mod_genes <- modules_df %>% filter(module == mod) %>% pull(gene_name)
     mod_idx <- which(colnames(datExpr) %in% mod_genes)
     if(length(mod_genes) < 2) next
     tom_sub <- TOM[mod_idx, mod_idx]
     rownames(tom_sub) <- colnames(tom_sub) <- mod_genes
-    
-    # Conversão segura para data frame
-    edges_mod <- as.data.frame(as.table(tom_sub), stringsAsFactors = FALSE)
-
-    if (is_pbs) {
-        # PBS/Singularity Mode: Forçamos os nomes para evitar erro de Var1
-        colnames(edges_mod) <- c("fromNode", "toNode", "weight")
-    } else {
-        # SGE Mode: Mantemos sua lógica original baseada em Var1/Var2
-        edges_mod <- edges_mod %>%
-            rename(fromNode = Var1, toNode = Var2, weight = Freq)
-    }
-
-    edges_mod <- edges_mod %>%
-        filter(weight > threshold & fromNode != toNode)
-
+    edges_mod <- as.data.frame(as.table(tom_sub)) %>%
+        filter(Freq > threshold & Var1 != Var2) %>%
+        rename(fromNode = Var1, toNode = Var2, weight = Freq)
     if(nrow(edges_mod) > 0) {
         edges_mod <- edges_mod[as.character(edges_mod$fromNode) < as.character(edges_mod$toNode), ]
         all_edges_list[[mod]] <- edges_mod
@@ -4471,7 +4403,7 @@ case $ANALYSIS in
         echo "==========================================="
         echo "Executing DATA CONVERSION (GEM/H5AD to GEF)..."
         echo "==========================================="
-        $ST_PYTHON bin/SCRIPT_CONVERTER.py
+        singularity exec -B /g/data,/scratch $IMAGE python3 bin/SCRIPT_CONVERTER.py
         EXIT_CODE=$?
         
         if [ $EXIT_CODE -eq 0 ]; then
@@ -4484,7 +4416,7 @@ case $ANALYSIS in
         echo "==========================================="
         echo "Executing PRIMARY ANALYSIS..."
         echo "==========================================="
-        $ST_PYTHON bin/SCRIPT_PRIMARY_ANALYSIS.py
+        singularity exec -B /g/data,/scratch $IMAGE python3 bin/SCRIPT_PRIMARY_ANALYSIS.py
         EXIT_CODE=$?
         ;;
     2)
@@ -4517,7 +4449,7 @@ case $ANALYSIS in
         echo "==========================================="
         
         # Execute secondary analysis
-        $ST_PYTHON bin/SCRIPT_SECONDARY_ANALYSIS.py
+        singularity exec -B /g/data,/scratch $IMAGE python3 bin/SCRIPT_SECONDARY_ANALYSIS.py
         EXIT_CODE=$?
         ;;
      3)
@@ -4541,11 +4473,13 @@ case $ANALYSIS in
         mkdir -p NETWORK
         
         echo "[$(date +%H:%M:%S)] Loading Environment for R..."
+        module load R/4.3.1
+        export R_LIBS_USER=~/.local/R/library
         ulimit -Sn 4000
 
         # Execute R script (pointing back to bin/)
         echo "[$(date +%H:%M:%S)] Running Rscript..."
-        $ST_R ../bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | tee LOGS/NETWORK_ANALYSIS.log
+        Rscript ../bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | tee LOGS/NETWORK_ANALYSIS.log
         
         EXIT_CODE=${PIPESTATUS[0]}
         
@@ -4580,22 +4514,6 @@ free -h
 echo "==========================================="
 
 # Finish: Move logs and compress results
-if [ -n "$PBS_JOBID" ]; then
-    # PBS / Gadi Mode
-    CURRENT_JOBID="$PBS_JOBID"
-    OUT_LOG="SPATIAL_ANALYSIS.out"
-    ERR_LOG="SPATIAL_ANALYSIS.err"
-elif [ -n "$JOB_ID" ]; then
-    # SGE Mode
-    CURRENT_JOBID="$JOB_ID"
-    OUT_LOG="SPATIAL_ANALYSIS_${JOB_ID}.out"
-    ERR_LOG="SPATIAL_ANALYSIS_${JOB_ID}.err"
-else
-    CURRENT_JOBID="manual_$(date +%Y%m%d)"
-    OUT_LOG="SPATIAL_ANALYSIS.out"
-    ERR_LOG="SPATIAL_ANALYSIS.err"
-fi
-
 if [ $EXIT_CODE -eq 0 ] && [ "$ANALYSIS" -ne 0 ]; then
     echo ""
     echo "==========================================="
@@ -4611,24 +4529,22 @@ if [ $EXIT_CODE -eq 0 ] && [ "$ANALYSIS" -ne 0 ]; then
     if [ -n "$LATEST_RESULTS" ] && [ -d "$LATEST_RESULTS" ]; then
         echo "MOVING LOGS TO RESULTS FOLDER ($LATEST_RESULTS)"
         echo "==========================================="
+        cp "SPATIAL_ANALYSYS_${$PBS_JOBID}.out" "$LATEST_RESULTS/" 2>/dev/null
+        cp "SPATIAL_ANALYSIS_${$PBS_JOBID}.err" "$LATEST_RESULTS/" 2>/dev/null
         
-        [ -f "$OUT_LOG" ] && cp "$OUT_LOG" "$LATEST_RESULTS/SPATIAL_ANALYSIS_${CURRENT_JOBID}.out"
-        [ -f "$ERR_LOG" ] && cp "$ERR_LOG" "$LATEST_RESULTS/SPATIAL_ANALYSIS_${CURRENT_JOBID}.err"
-
         # Remove old compressed version if doing secondary analysis
         if [ $ANALYSIS -eq 2 ] && [ -f "${LATEST_RESULTS}.tar.gz" ]; then
             echo "Removing old compressed version..."
             rm -f "${LATEST_RESULTS}.tar.gz"
         fi
-
+        
         echo "COMPRESSING RESULTS"
         tar -czf "${LATEST_RESULTS}.tar.gz" "$LATEST_RESULTS"
-
+        
         if [ -f "${LATEST_RESULTS}.tar.gz" ]; then
             echo "COMPRESSION SUCCESSFUL. REMOVING FOLDER"
             rm -rf "$LATEST_RESULTS"
-            # Cleanup logs with a small delay to ensure they are closed
-            (sleep 5 && rm -f "$OUT_LOG" "$ERR_LOG" 2>/dev/null) &
+            (sleep 30 && rm -f "SPATIAL_ANALYSYS_${JOB_ID}.out" "SPATIAL_ANALYSIS_${JOB_ID}.err" 2>/dev/null) &
             echo "COMPRESSION FINISHED AND FOLDER CLEANED: ${LATEST_RESULTS}.tar.gz"
         else
             echo "ERROR: COMPRESSION FAILED."
@@ -4637,6 +4553,7 @@ if [ $EXIT_CODE -eq 0 ] && [ "$ANALYSIS" -ne 0 ]; then
         echo "WARNING: No results folder found to compress"
     fi
     echo "==========================================="
+    echo ""
 else
     if [ "$ANALYSIS" -eq 0 ]; then
         echo "Conversion task finished. Results kept uncompressed for further analysis."
