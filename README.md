@@ -69,7 +69,7 @@ See the [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
     ```
 ---
 
-### Main Pipeline (Cluster Execution - SGE)
+### Main Pipeline (Cluster Execution)
 
 The core scripts are optimized for **SGE** and **PBS** clusters execution. They use **relative paths** and **must be run from the `POLY_PIPELINE` main directory.**
 
