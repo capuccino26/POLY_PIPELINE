@@ -113,9 +113,9 @@ The scripts are submitted with explicit Miniconda or docker image paths and para
     | :--- | :--- | :--- |
     | `ST_PYTHON` | Path to the python executable inside the st environment (SGE) or the container (PBS) for main analysis. | - |
     | `R_CONTAINER` | Path to the R container for secondary analysis (3 - Network Analysis). | - |
-    | `MIN_COUNTS` | Minimum number of counts per cell. | -  |
-    | `MIN_GENES` | Minimum number of genes per cell. | - |
-    | `PCT_COUNTS_MT` | Acceptable percentage of mitochondrial genes. | - |
+    | `MIN_COUNTS` | Minimum number of counts per cell. | 20 |
+    | `MIN_GENES` | Minimum number of genes per cell. | 3 |
+    | `PCT_COUNTS_MT` | Acceptable percentage of mitochondrial genes. | 2 |
     | `N_PCS` | Number of principal components. This step can be inproved after first run. Check the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS | - |
     | `ANALYSIS` | *(Optional)* Select the type of analysis (check below for details): [0] Converter, [1] Primary analysis, [3] Network Analysis | 1 |
     | `INTEREST_GENES_PATH` | *(Optional)* Select the list of candidate genes for analysis (see above). use explicit path for custom list: INTEREST_GENES_PATH="/Storage/user/file_name.txt" | "INPUT/interest_genes.txt" |
@@ -123,6 +123,7 @@ The scripts are submitted with explicit Miniconda or docker image paths and para
     | `MIN_X` | *(Optional)* Minimum X coordinate for spatial filtering. | - |
     | `MAX_X` | *(Optional)* Maximum X coordinate for spatial filtering. | - |
     | `MIN_Y` | *(Optional)* Minimum Y coordinate for spatial filtering. | - |
+    | `MAX_Y` | *(Optional)* Maximum Y coordinate for spatial filtering. | - |
     | `HVG_MIN_MEAN` | *(Optional)* Min mean filtering for selection of HVGs. | 0.0125 |
     | `HVG_MAX_MEAN` | *(Optional)* Max mean filtering for selection of HVGs. | 3.0 |
     | `HVG_DISP` | *(Optional)* Dispersion filtering for selection of HVGs. | 0.5 |
