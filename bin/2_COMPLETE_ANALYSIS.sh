@@ -125,6 +125,7 @@ HVG_DISP=${HVG_DISP:-0.5}
 HVG_TOP=${HVG_TOP:-2000}
 INTEREST_GENES_PATH=${INTEREST_GENES_PATH:-"INPUT/interest_genes.txt"}
 EXPRESSION_THR=${EXPRESSION_THR:-1.0}
+MARKER_FILE=${MARKER_FILE:-"INPUT/MARKERS.txt"}
 INPUT_PATH=${INPUT_PATH:-""}
 if [ -n "$INPUT_PATH" ]; then
     CLEAN_PATH="${INPUT_PATH%/}"
@@ -4103,54 +4104,259 @@ echo "==========================================="
 
 # Generate analysis script
 echo "==========================================="
-echo "Creating Secondary Script!"
+echo "Creating Anchoring Script!"
 echo "==========================================="
-cat > bin/SCRIPT_SECONDARY_ANALYSIS.py << EOF
+cat > bin/SCRIPTS_ANCHORING.py << EOF
 #!/usr/bin/env python3
-# Import dependencies
+import stereo as st
 import os
-from datetime import datetime
+import glob
+import warnings
+import numpy as np
+import pandas as pd
+import time
+import datetime
+import matplotlib.pyplot as plt
+import sys
+
+# Performance tracking
+start_time = time.time()
+warnings.filterwarnings('ignore')
+
+# Configuration from Shell
+gene_input = "INPUT"
+marker_file = "$MARKER_FILE"
+thr = float($EXPRESSION_THR)
+
+# Coordinate filters (ROI)
+min_x_str = "$MIN_X"
+max_x_str = "$MAX_X"
+min_y_str = "$MIN_Y"
+max_y_str = "$MAX_Y"
+
+min_x = float(min_x_str) if min_x_str else None
+max_x = float(max_x_str) if max_x_str else None
+min_y = float(min_y_str) if min_y_str else None
+max_y = float(max_y_str) if max_y_str else None
+
+# Directory setup
+input_dir = "INPUT/datasets"
 
 # Find the latest RESULTS folder
 results_folders = [d for d in os.listdir('.') if d.startswith('RESULTS_') and os.path.isdir(d)]
 if not results_folders:
     print("ERROR: No RESULTS folder found!")
-    exit(1)
+    sys.exit(1)
 
 latest_results = sorted(results_folders)[-1]
 print(f"Working on: {latest_results}")
 
-# Generate Summary File
-summary_file = os.path.join(latest_results, 'SECONDARY_ANALYSIS_SUMMARY.txt')
-with open(summary_file, 'w') as f:
-    f.write("=" * 50 + "\n")
-    f.write("SECONDARY ANALYSIS\n")
-    f.write("=" * 50 + "\n")
-    f.write(f"Execution time: {datetime.now()}\n")
-    f.write(f"Results folder: {latest_results}\n")
-    f.write("\n")
-    f.write("Contents of results folder:\n")
+output_dir = os.path.join(latest_results, "ANCHORING")
+os.makedirs(output_dir, exist_ok=True)
+
+# 1. Load Reference Markers from file (LOC:REGION)
+reference_markers = {}
+try:
+    with open(marker_file, 'r') as f:
+        for line in f:
+            if ':' in line:
+                loc, region = line.strip().split(':')
+                if region not in reference_markers:
+                    reference_markers[region] = []
+                reference_markers[region].append(loc)
+    print(f"Loaded markers for regions: {list(reference_markers.keys())}")
+except Exception as e:
+    print(f"Error reading marker file {marker_file}: {e}")
+    sys.exit(1)
+
+# 2. Identify input cluster files
+if os.path.isdir(gene_input):
+    cluster_files = glob.glob(os.path.join(gene_input, "INT_GENES_*.txt"))
+elif "*" in gene_input:
+    cluster_files = glob.glob(gene_input)
+else:
+    cluster_files = [gene_input]
+
+if not cluster_files:
+    print(f"No cluster files found matching: {gene_input}")
+    sys.exit(1)
+
+# 3. Process GEF files
+gef_files = glob.glob(os.path.join(input_dir, '*.gef'))
+
+# Define colors for the dynamic regions
+cmap = plt.get_cmap('tab20')
+region_list = list(reference_markers.keys())
+region_colors = {region: cmap(i % 20) for i, region in enumerate(region_list)}
+
+for cluster_path in cluster_files:
+    cluster_filename = os.path.basename(cluster_path)
+    cluster_name = os.path.splitext(cluster_filename)[0]
+    print(f"\n{'='*70}")
+    print(f"PROCESSING CLUSTER: {cluster_name}")
+    print(f"{'='*70}")
     
-    # List all files in the results folder
-    for item in sorted(os.listdir(latest_results)):
-        item_path = os.path.join(latest_results, item)
-        if os.path.isfile(item_path):
-            size = os.path.getsize(item_path)
-            f.write(f"  [FILE] {item} ({size} bytes)\n")
-        elif os.path.isdir(item_path):
-            f.write(f"  [DIR]  {item}/\n")
+    try:
+        with open(cluster_path, 'r') as f:
+            target_genes = [line.strip() for line in f if line.strip()]
+    except Exception as e:
+        print(f"Error reading {cluster_path}: {e}")
+        continue
 
-# Function 1
+    all_samples_data = []
 
-# Finish script
-with open(summary_file, 'a') as f:
-    f.write("\n" + "=" * 50 + "\n")
-    f.write("Secondary Analysis completed successfully!\n")
-    f.write("=" * 50 + "\n")
-print("Secondary analysis test completed!")
+    for gef_path in gef_files:
+        sample_name = os.path.splitext(os.path.basename(gef_path))[0]
+        print(f"--- Analyzing Sample: {sample_name} ---")
+
+        try:
+            data = st.io.read_gef(file_path=gef_path)
+            
+            # Apply ROI filtering
+            if any([min_x, max_x, min_y, max_y]):
+                data.tl.filter_coordinates(
+                    min_x=min_x if min_x is not None else data.position[:, 0].min(),
+                    max_x=max_x if max_x is not None else data.position[:, 0].max(),
+                    min_y=min_y if min_y is not None else data.position[:, 1].min(),
+                    max_y=max_y if max_y is not None else data.position[:, 1].max()
+                )
+            
+            gene_names = data.genes.gene_name
+            
+            # --- START PLOT GENERATION (Guia Geral) ---
+            fig, ax = plt.subplots(figsize=(12, 10), facecolor='black')
+            ax.set_facecolor('black')
+            
+            # Plot background (tissue spots)
+            total_counts_array = data.exp_matrix.sum(axis=1).A1
+            tissue_mask = total_counts_array > 0
+            ax.scatter(data.position[tissue_mask, 0], data.position[tissue_mask, 1], 
+                       c='dimgray', s=10, alpha=0.3, edgecolors='none', label='Tissue Background')
+
+            # Create Spatial Masks for each Reference Region and Plot them
+            region_masks = {}
+            for region, markers in reference_markers.items():
+                valid_markers = [m for m in markers if m in gene_names]
+                if not valid_markers:
+                    continue
+                
+                combined_mask = np.zeros(data.exp_matrix.shape[0], dtype=bool)
+                for marker in valid_markers:
+                    idx = np.where(gene_names == marker)[0][0]
+                    expr = data.exp_matrix[:, idx].toarray().flatten()
+                    combined_mask |= (expr > thr)
+                
+                if np.any(combined_mask):
+                    region_masks[region] = combined_mask
+                    # Plot this specific region with its assigned color
+                    ax.scatter(data.position[combined_mask, 0], data.position[combined_mask, 1], 
+                               color=region_colors[region], s=20, label=region, edgecolors='none')
+
+            ax.set_title(f"General Region Guide - {sample_name}\n(Based on {marker_file})", color='white', fontsize=14)
+            legend = ax.legend(loc='upper left', bbox_to_anchor=(1, 1), facecolor='black', edgecolor='white')
+            for text in legend.get_texts():
+                text.set_color('white')
+            
+            ax.set_aspect('equal', adjustable='box')
+            ax.axis('off')
+            
+            guide_path = os.path.join(output_dir, f"{sample_name}_REGION_GUIDE.png")
+            plt.savefig(guide_path, dpi=300, bbox_inches='tight', facecolor='black')
+            plt.close(fig)
+            print(f"General region guide saved: {guide_path}")
+            # --- END PLOT GENERATION ---
+
+            # --- START INDIVIDUAL REGION PLOTS (New Addition) ---
+            for region, mask in region_masks.items():
+                fig_ind, ax_ind = plt.subplots(figsize=(12, 10), facecolor='black')
+                ax_ind.set_facecolor('black')
+                
+                # Plot same background
+                ax_ind.scatter(data.position[tissue_mask, 0], data.position[tissue_mask, 1], 
+                               c='dimgray', s=10, alpha=0.3, edgecolors='none')
+                
+                # Plot only the specific region
+                ax_ind.scatter(data.position[mask, 0], data.position[mask, 1], 
+                               color=region_colors[region], s=20, edgecolors='none')
+                
+                ax_ind.set_title(f"Region: {region} - {sample_name}", color='white', fontsize=14)
+                ax_ind.set_aspect('equal', adjustable='box')
+                ax_ind.axis('off')
+                
+                ind_path = os.path.join(output_dir, f"{sample_name}_REGION_{region}.png")
+                plt.savefig(ind_path, dpi=300, bbox_inches='tight', facecolor='black')
+                plt.close(fig_ind)
+            # --- END INDIVIDUAL REGION PLOTS ---
+
+            # Classify Target Genes (Original Logic)
+            for gene in target_genes:
+                if gene not in gene_names:
+                    continue
+                    
+                gene_idx = np.where(gene_names == gene)[0][0]
+                gene_expr = data.exp_matrix[:, gene_idx].toarray().flatten()
+                gene_spots_mask = (gene_expr > thr)
+                
+                total_gene_spots = np.sum(gene_spots_mask)
+                if total_gene_spots < 2: 
+                    continue
+
+                overlaps = {}
+                for region, r_mask in region_masks.items():
+                    intersection = np.sum(gene_spots_mask & r_mask)
+                    overlaps[region] = intersection / total_gene_spots
+
+                if not overlaps:
+                    continue
+
+                best_region = max(overlaps, key=overlaps.get)
+                highest_overlap = overlaps[best_region]
+                
+                other_values = [v for k, v in overlaps.items() if k != best_region]
+                max_second_overlap = max(other_values) if other_values else 0
+                
+                if highest_overlap > 0.10 or (highest_overlap > 2 * max_second_overlap):
+                    final_region = best_region
+                else:
+                    final_region = "MULTIFOCAL/SCATTERED"
+
+                all_samples_data.append({
+                    'LOC': gene, 
+                    'REGION': final_region, 
+                    'CONFIDENCE': highest_overlap
+                })
+
+        except Exception as e:
+            print(f"Error processing {sample_name}: {e}")
+
+    # Consolidate results for the current cluster
+    if all_samples_data:
+        df_samples = pd.DataFrame(all_samples_data)
+        final_summary = []
+        
+        for gene in df_samples['LOC'].unique():
+            gene_subset = df_samples[df_samples['LOC'] == gene]
+            consensual_region = gene_subset['REGION'].mode()[0]
+            mean_conf = gene_subset['CONFIDENCE'].mean()
+            
+            final_summary.append({
+                'LOC': gene, 
+                'REGION': consensual_region, 
+                'AVG_CONFIDENCE': round(mean_conf, 3)
+            })
+        
+        output_df = pd.DataFrame(final_summary)
+        csv_path = os.path.join(output_dir, f"{cluster_name}.csv")
+        output_df.to_csv(csv_path, index=False)
+        print(f"Successfully saved {len(output_df)} genes to {csv_path}")
+    else:
+        print(f"No valid classification data for cluster {cluster_name}")
+
+total_duration = time.time() - start_time
+print(f"\nProcessing finished in {total_duration:.2f} seconds.")
 EOF
 echo "==========================================="
-echo "Secondary Script created successfully!"
+echo "Anchoring Script created successfully!"
 echo "==========================================="
 
 
@@ -4487,7 +4693,7 @@ case $ANALYSIS in
         ;;
     2)
         echo "==========================================="
-        echo "Executing SECONDARY ANALYSIS..."
+        echo "Executing ANCHORING ANALYSIS..."
         echo "==========================================="
         
         # Find and decompress the latest results folder
@@ -4515,7 +4721,7 @@ case $ANALYSIS in
         echo "==========================================="
         
         # Execute secondary analysis
-        $ST_PYTHON bin/SCRIPT_SECONDARY_ANALYSIS.py
+        $ST_PYTHON bin/SCRIPTS_ANCHORING.py
         EXIT_CODE=$?
         ;;
      3)
@@ -4649,4 +4855,3 @@ else
         exit 1
     fi
 fi
-
