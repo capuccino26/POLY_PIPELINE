@@ -141,6 +141,15 @@ else
     OUTPUT_DIR="./CONVERTER_RESULTS"
 fi
 
+# Determine Cluster Type for Python logic
+if [ -n "$PBS_JOBID" ]; then
+    CLUSTER_TYPE="PBS"
+elif [ -n "$JOB_ID" ]; then
+    CLUSTER_TYPE="SGE"
+else
+    CLUSTER_TYPE="MANUAL"
+fi
+
 echo "Filtering Parameters Used:"
 echo "  Minimum counts: $MIN_COUNTS"
 echo "  Minimum genes per cell: $MIN_GENES"
@@ -885,15 +894,6 @@ log_step("Loading data")
 try:
     #st.io.read_gef_info(data_path)
     data = st.io.read_gef(file_path=data_path, bin_size=int(float("$BIN_SIZE")))
-    m_x, M_x = os.getenv('MIN_X'), os.getenv('MAX_X')
-    m_y, M_y = os.getenv('MIN_Y'), os.getenv('MAX_Y')
-
-    if all(v and v.strip() for v in [m_x, M_x, m_y, M_y]):
-        log_step(f"Applying manual crop: X[{m_x}:{M_x}], Y[{m_y}:{M_y}]")
-        data.sub_by_position(
-            x_min=int(m_x), x_max=int(M_x), 
-            y_min=int(m_y), y_max=int(M_y)
-        )
 
     log_step(f"Data loaded successfully: {data}")
     save_progress_checkpoint(data, output_dir, 'data_loaded')
@@ -4170,16 +4170,19 @@ except Exception as e:
     sys.exit(1)
 
 # 2. Identify input cluster files
+use_all_genes = False
+cluster_files = []
 if os.path.isdir(gene_input):
     cluster_files = glob.glob(os.path.join(gene_input, "INT_GENES_*.txt"))
 elif "*" in gene_input:
     cluster_files = glob.glob(gene_input)
-else:
+elif os.path.isfile(gene_input):
     cluster_files = [gene_input]
 
 if not cluster_files:
     print(f"No cluster files found matching: {gene_input}")
-    sys.exit(1)
+    print("Switching to ALL GENES mode.")
+    use_all_genes = True
 
 # 3. Process GEF files
 gef_files = glob.glob(os.path.join(input_dir, '*.gef'))
@@ -4189,19 +4192,28 @@ cmap = plt.get_cmap('tab20')
 region_list = list(reference_markers.keys())
 region_colors = {region: cmap(i % 20) for i, region in enumerate(region_list)}
 
-for cluster_path in cluster_files:
-    cluster_filename = os.path.basename(cluster_path)
-    cluster_name = os.path.splitext(cluster_filename)[0]
+# Prepare iteration
+if use_all_genes:
+    iteration_list = [("ALL_GENES", None)]
+else:
+    iteration_list = []
+    for cp in cluster_files:
+        cn = os.path.splitext(os.path.basename(cp))[0]
+        iteration_list.append((cn, cp))
+
+for cluster_name, cluster_path in iteration_list:
     print(f"\n{'='*70}")
-    print(f"PROCESSING CLUSTER: {cluster_name}")
+    print(f"PROCESSING GROUP: {cluster_name}")
     print(f"{'='*70}")
     
-    try:
-        with open(cluster_path, 'r') as f:
-            target_genes = [line.strip() for line in f if line.strip()]
-    except Exception as e:
-        print(f"Error reading {cluster_path}: {e}")
-        continue
+    target_genes_ref = None
+    if cluster_path:
+        try:
+            with open(cluster_path, 'r') as f:
+                target_genes_ref = [line.strip() for line in f if line.strip()]
+        except Exception as e:
+            print(f"Error reading {cluster_path}: {e}")
+            continue
 
     all_samples_data = []
 
@@ -4222,6 +4234,8 @@ for cluster_path in cluster_files:
                 )
             
             gene_names = data.genes.gene_name
+            # Create lookup for speed
+            gene_name_to_idx = {name: i for i, name in enumerate(gene_names)}
             
             # --- START PLOT GENERATION (Guia Geral) ---
             fig, ax = plt.subplots(figsize=(12, 10), facecolor='black')
@@ -4242,7 +4256,7 @@ for cluster_path in cluster_files:
                 
                 combined_mask = np.zeros(data.exp_matrix.shape[0], dtype=bool)
                 for marker in valid_markers:
-                    idx = np.where(gene_names == marker)[0][0]
+                    idx = gene_name_to_idx[marker]
                     expr = data.exp_matrix[:, idx].toarray().flatten()
                     combined_mask |= (expr > thr)
                 
@@ -4288,12 +4302,19 @@ for cluster_path in cluster_files:
                 plt.close(fig_ind)
             # --- END INDIVIDUAL REGION PLOTS ---
 
-            # Classify Target Genes (Original Logic)
-            for gene in target_genes:
-                if gene not in gene_names:
+            # Classify Target Genes
+            genes_to_process = target_genes_ref if target_genes_ref is not None else gene_names
+            total_genes = len(genes_to_process)
+            print(f"Classifying {total_genes} genes...")
+            
+            for i, gene in enumerate(genes_to_process):
+                if i % 1000 == 0 and total_genes > 1000:
+                    print(f"  Processed {i}/{total_genes} genes...", end='\r')
+                    
+                if gene not in gene_name_to_idx:
                     continue
                     
-                gene_idx = np.where(gene_names == gene)[0][0]
+                gene_idx = gene_name_to_idx[gene]
                 gene_expr = data.exp_matrix[:, gene_idx].toarray().flatten()
                 gene_spots_mask = (gene_expr > thr)
                 
@@ -4325,6 +4346,7 @@ for cluster_path in cluster_files:
                     'REGION': final_region, 
                     'CONFIDENCE': highest_overlap
                 })
+            print("") # Newline after progress
 
         except Exception as e:
             print(f"Error processing {sample_name}: {e}")
