@@ -10,7 +10,7 @@
 The pipeline was developed to work primarily with polyploid organisms, bypassing common problems in spatial analysis; however, the script has been tested with diploids and can also be used.
 
 ## Workflow Overview
-![Poly Pipeline Workflow](img/POLY_PIPELINE_DIAGRAM.png)
+![Poly Pipeline Workflow](POLY_PIPELINE_DIAGRAM.png)
 ---
 
 ## Contributing
