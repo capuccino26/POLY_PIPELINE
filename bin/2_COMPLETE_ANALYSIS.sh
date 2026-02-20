@@ -4118,6 +4118,7 @@ import time
 import datetime
 import matplotlib.pyplot as plt
 import sys
+from datetime import datetime
 
 # Performance tracking
 start_time = time.time()
@@ -4142,14 +4143,20 @@ max_y = float(max_y_str) if max_y_str else None
 # Directory setup
 input_dir = "INPUT/datasets"
 
+# Function for logging stamps
+def log_step(message):
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {message}")
+    sys.stdout.flush()
+
 # Find the latest RESULTS folder
 results_folders = [d for d in os.listdir('.') if d.startswith('RESULTS_') and os.path.isdir(d)]
 if not results_folders:
-    print("ERROR: No RESULTS folder found!")
+    log_step("ERROR: No RESULTS folder found!")
     sys.exit(1)
 
 latest_results = sorted(results_folders)[-1]
-print(f"Working on: {latest_results}")
+log_step(f"Working on: {latest_results}")
 
 output_dir = os.path.join(latest_results, "ANCHORING")
 os.makedirs(output_dir, exist_ok=True)
@@ -4164,9 +4171,9 @@ try:
                 if region not in reference_markers:
                     reference_markers[region] = []
                 reference_markers[region].append(loc)
-    print(f"Loaded markers for regions: {list(reference_markers.keys())}")
+    log_step(f"Loaded markers for regions: {list(reference_markers.keys())}")
 except Exception as e:
-    print(f"Error reading marker file {marker_file}: {e}")
+    log_step(f"Error reading marker file {marker_file}: {e}")
     sys.exit(1)
 
 # 2. Identify input cluster files
@@ -4180,8 +4187,8 @@ elif os.path.isfile(gene_input):
     cluster_files = [gene_input]
 
 if not cluster_files:
-    print(f"No cluster files found matching: {gene_input}")
-    print("Switching to ALL GENES mode.")
+    log_step(f"No cluster files found matching: {gene_input}")
+    log_step("Switching to ALL GENES mode.")
     use_all_genes = True
 
 # 3. Process GEF files
@@ -4202,9 +4209,9 @@ else:
         iteration_list.append((cn, cp))
 
 for cluster_name, cluster_path in iteration_list:
-    print(f"\n{'='*70}")
-    print(f"PROCESSING GROUP: {cluster_name}")
-    print(f"{'='*70}")
+    log_step(f"\n{'='*100}")
+    log_step(f"PROCESSING GROUP: {cluster_name}")
+    log_step(f"{'='*100}")
     
     target_genes_ref = None
     if cluster_path:
@@ -4212,14 +4219,14 @@ for cluster_name, cluster_path in iteration_list:
             with open(cluster_path, 'r') as f:
                 target_genes_ref = [line.strip() for line in f if line.strip()]
         except Exception as e:
-            print(f"Error reading {cluster_path}: {e}")
+            log_step(f"Error reading {cluster_path}: {e}")
             continue
 
     all_samples_data = []
 
     for gef_path in gef_files:
         sample_name = os.path.splitext(os.path.basename(gef_path))[0]
-        print(f"--- Analyzing Sample: {sample_name} ---")
+        log_step(f"Analyzing Sample: {sample_name}")
 
         try:
             data = st.io.read_gef(file_path=gef_path)
@@ -4234,10 +4241,8 @@ for cluster_name, cluster_path in iteration_list:
                 )
             
             gene_names = data.genes.gene_name
-            # Create lookup for speed
             gene_name_to_idx = {name: i for i, name in enumerate(gene_names)}
             
-            # --- START PLOT GENERATION (Guia Geral) ---
             fig, ax = plt.subplots(figsize=(12, 10), facecolor='black')
             ax.set_facecolor('black')
             
@@ -4262,7 +4267,6 @@ for cluster_name, cluster_path in iteration_list:
                 
                 if np.any(combined_mask):
                     region_masks[region] = combined_mask
-                    # Plot this specific region with its assigned color
                     ax.scatter(data.position[combined_mask, 0], data.position[combined_mask, 1], 
                                color=region_colors[region], s=20, label=region, edgecolors='none')
 
@@ -4277,10 +4281,8 @@ for cluster_name, cluster_path in iteration_list:
             guide_path = os.path.join(output_dir, f"{sample_name}_REGION_GUIDE.png")
             plt.savefig(guide_path, dpi=300, bbox_inches='tight', facecolor='black')
             plt.close(fig)
-            print(f"General region guide saved: {guide_path}")
-            # --- END PLOT GENERATION ---
+            log_step(f"General region guide saved: {guide_path}")
 
-            # --- START INDIVIDUAL REGION PLOTS (New Addition) ---
             for region, mask in region_masks.items():
                 fig_ind, ax_ind = plt.subplots(figsize=(12, 10), facecolor='black')
                 ax_ind.set_facecolor('black')
@@ -4300,17 +4302,15 @@ for cluster_name, cluster_path in iteration_list:
                 ind_path = os.path.join(output_dir, f"{sample_name}_REGION_{region}.png")
                 plt.savefig(ind_path, dpi=300, bbox_inches='tight', facecolor='black')
                 plt.close(fig_ind)
-            # --- END INDIVIDUAL REGION PLOTS ---
 
             # Classify Target Genes
             genes_to_process = target_genes_ref if target_genes_ref is not None else gene_names
             total_genes = len(genes_to_process)
-            print(f"Classifying {total_genes} genes...")
+            log_step(f"Classifying {total_genes} genes...")
             
             for i, gene in enumerate(genes_to_process):
                 if i % 1000 == 0 and total_genes > 1000:
-                    print(f"  Processed {i}/{total_genes} genes...", end='\r')
-                    
+                    log_step(f"  Processed {i}/{total_genes} genes...")
                 if gene not in gene_name_to_idx:
                     continue
                     
@@ -4346,10 +4346,10 @@ for cluster_name, cluster_path in iteration_list:
                     'REGION': final_region, 
                     'CONFIDENCE': highest_overlap
                 })
-            print("") # Newline after progress
+            log_step("")
 
         except Exception as e:
-            print(f"Error processing {sample_name}: {e}")
+            log_step(f"Error processing {sample_name}: {e}")
 
     # Consolidate results for the current cluster
     if all_samples_data:
@@ -4370,12 +4370,12 @@ for cluster_name, cluster_path in iteration_list:
         output_df = pd.DataFrame(final_summary)
         csv_path = os.path.join(output_dir, f"{cluster_name}.csv")
         output_df.to_csv(csv_path, index=False)
-        print(f"Successfully saved {len(output_df)} genes to {csv_path}")
+        log_step(f"Successfully saved {len(output_df)} genes to {csv_path}")
     else:
-        print(f"No valid classification data for cluster {cluster_name}")
+        log_step(f"No valid classification data for cluster {cluster_name}")
 
 total_duration = time.time() - start_time
-print(f"\nProcessing finished in {total_duration:.2f} seconds.")
+log_step(f"\nProcessing finished in {total_duration:.2f} seconds.")
 EOF
 echo "==========================================="
 echo "Anchoring Script created successfully!"
