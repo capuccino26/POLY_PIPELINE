@@ -230,3 +230,14 @@ POLY_PIPELINE/
 This project is licensed under the [MIT License](LICENSE).
 
 ---
+
+## Repository Links and Identifiers
+
+| Resource | Identifier / Access Link |
+| :--- | :--- |
+| **Source Code** | [github.com/capuccino26/POLY_PIPELINE](https://github.com/capuccino26/POLY_PIPELINE) |
+| **WorkflowHub DOI** | [https://doi.org/10.48546/workflowhub.workflow.2091.1](https://doi.org/10.48546/workflowhub.workflow.2091.1) |
+| **Archived Release (Zenodo DOI)** | [https://doi.org/10.5281/zenodo.18655692](https://doi.org/10.5281/zenodo.18655692) |
+| **bio.tools Registry** | [https://bio.tools/poly_pipeline](https://bio.tools/poly_pipeline) |
+
+---
