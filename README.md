@@ -9,6 +9,8 @@
 **POLY_PIPELINE** is a comprehensive bioinformatics pipeline designed to process and analyze **STOmics** data specifically tailored for **polyploid** organisms. It automates and simplifies several crucial steps of spatial transcriptomics data analysis, ensuring reproducibility, flexibility, and scalability for handling large, complex polyploid genomes. This pipeline leverages a modular structure and relies heavily on the [**Stereopy package**](https://github.com/STOmics/Stereopy).
 The pipeline was developed to work primarily with polyploid organisms, bypassing common problems in spatial analysis; however, the script has been tested with diploids and can also be used.
 
+This repository currently contains the full modular workflow for primary analysis, converter utilities, and secondary network analysis using hdWGCNA. Results generated during execution are stored under `RESULTS/` and are not intended to be versioned in the repository by default.
+
 ## Workflow Overview
 ![Poly Pipeline Workflow](POLY_PIPELINE_DIAGRAM.png)
 ---
@@ -36,12 +38,12 @@ See the [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 1.  **Setup Container Image**
     ```bash
     cd /project/directory/POLY_PIPELINE
-    module load singularity
+    module load singularity-ce/4.3.3
     singularity pull stereopy_1.5.1.sif docker://mlepetit/stereopy:1.5.1.2
     ```
 2.  **Verify installation inside Container**
     ```bash
-    module load singularity
+    module load singularity-ce/4.3.3
     singularity exec stereopy_1.5.1.sif python3 -c "import stereo as st; print(f'Stereopy version: {st.__version__}')"
     ```
 3.  **Use the correct directory for job submission (check below for further instructions about variables):**
@@ -51,24 +53,34 @@ See the [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 4.  **Setup Container for hdWGCNA (secondary analysis)**
     ```bash
     cd /project/directory/POLY_PIPELINE
-    module load singularity
+    module load singularity-ce/4.3.3
     singularity pull r_hdwgcna.sif docker://satijalab/seurat:latest
+    ```
+    *If `singularity pull` fails because `mksquashfs` is unavailable on the frontend, use a sandbox image instead:*
+    ```bash
+    module load singularity-ce/4.3.3
+    singularity build --sandbox r_hdwgcna docker://satijalab/seurat:latest
     ```
 5.  **Install hdWGCNA (Recommended use TMUX or SCREEN)**
     ```bash
     mkdir -p /project/directory/POLY_PIPELINE/R_libs_hdwgcna
-    module load singularity
-    singularity exec -B /project/directory/POLY_PIPELINE r_hdwgcna.sif Rscript -e "lib_path <- '/project/directory/POLY_PIPELINE/R_libs_hdwgcna';install.packages(c('BiocManager', 'devtools', 'tester', 'enrichR', 'fastcluster', 'dynamicTreeCut', 'ggforce', 'tidygraph', 'graphlayouts', 'Hmisc', 'foreach', 'doParallel'), repos='https://cloud.r-project.org', lib=lib_path);BiocManager::install(c('WGCNA', 'GeneOverlap', 'UCell', 'enrichr', 'impute', 'preprocessCore', 'GO.db', 'GenomicRanges'), lib=lib_path, update=FALSE, ask=FALSE);devtools::install_github('smorabit/hdWGCNA', ref='dev', lib=lib_path);"
+    module load singularity-ce/4.3.3
+    singularity exec -B /project/directory/POLY_PIPELINE r_hdwgcna.sif Rscript -e "lib_path <- '/project/directory/POLY_PIPELINE/R_libs_hdwgcna';install.packages(c('BiocManager', 'devtools', 'tester', 'enrichR', 'fastcluster', 'dynamicTreeCut', 'ggforce', 'tidygraph', 'graphlayouts', 'Hmisc', 'foreach', 'doParallel'), repos='https://cloud.r-project.org', lib=lib_path);BiocManager::install(c('WGCNA', 'GeneOverlap', 'UCell', 'impute', 'preprocessCore', 'GO.db', 'GenomicRanges'), lib=lib_path, update=FALSE, ask=FALSE);devtools::install_github('smorabit/hdWGCNA', lib=lib_path, upgrade='never');"
     ```
+    *For sandbox installations, replace `r_hdwgcna.sif` with `r_hdwgcna` in the command above.*
 6.  **Verify installation**
     ```bash
     export R_LIBS_USER="/project/directory/POLY_PIPELINE/R_libs_hdwgcna"
     singularity exec -B /project/directory/POLY_PIPELINE r_hdwgcna.sif Rscript -e ".libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths()));library(WGCNA);library(hdWGCNA);cat('\nSuccess!\n')"
     ```
+    *For sandbox installations, replace `r_hdwgcna.sif` with `r_hdwgcna` in the command above.*
 7.  **Use the correct directry for job submission (check below for further instructions about variables):**
     ```bash
     qsub -v ST_PYTHON="/project/directory/POLY_PIPELINE/stereopy_1.5.1.sif",R_CONTAINER="/project/directory/POLY_PIPELINE/r_hdwgcna.sif",ANALYSIS=3 bin/2_COMPLETE_ANALYSIS.sh
     ```
+    *If `R_CONTAINER` is omitted and a local `r_hdwgcna` sandbox exists in the execution directory, the script will use it automatically for `ANALYSIS=3`.*
+
+> The network step is a secondary analysis stage that can be executed independently from the primary spatial workflow once the `EXPORTS/HVG_EXPRESSION_MATRIX.csv` file has been generated in the active results folder.
 ---
 
 ### Main Pipeline (Cluster Execution)
@@ -121,6 +133,8 @@ The scripts are submitted with explicit Miniconda or docker image paths and para
     | `N_PCS` | Number of principal components. This step can be inproved after first run. Check the Elbow Plot (RESULTS/results_ultimate/plots/qc/pca_elbow_enhanced.png) and insert the value of the elbow as N_PCS | - |
     | `ANALYSIS` | *(Optional)* Select the type of analysis (check below for details): [0] Converter, [1] Primary analysis, [3] Network Analysis | 1 |
     | `INTEREST_GENES_PATH` | *(Optional)* Select the list of candidate genes for analysis (see above). use explicit path for custom list: INTEREST_GENES_PATH="/Storage/user/file_name.txt" | "INPUT/interest_genes.txt" |
+    | `NETWORK_GENE_SET` | *(Optional for analysis [3])* Gene set used for network construction: `hvg`, `all`, or `custom`. | "hvg" |
+    | `CUSTOM_GENE_LIST` | *(Optional for analysis [3])* Explicit file path used when `NETWORK_GENE_SET=custom`. | "INPUT/interest_genes.txt" |
     | `EXPRESSION_THR` | *(Optional)* Set expression threshold for Interest Genes filtering. | 1.0 |
     | `MIN_X` | *(Optional)* Minimum X coordinate for spatial filtering. | - |
     | `MAX_X` | *(Optional)* Maximum X coordinate for spatial filtering. | - |
@@ -169,22 +183,28 @@ ST_PYTHON='/home/user/.conda/envs/st/bin/python' MIN_COUNTS=50 MIN_GENES=5 PCT_C
 | Step | Script | Description | Usage | Observations | Standalone | Main Analysis |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | [**File Converter**](bin/SCRIPT_CONVERTER.py) | `bin/SCRIPT_CONVERTER.py` | Script for converting .H5AD and .GEM files to the proper .GEF file prior to main analysis | python bin/SCRIPT_CONVERTER.py | The script generates the converted file and summary informations | Optional | 0 |
-| [**Network Analysis**](bin/SCRIPT_NETWORK_ANALYSIS.r) | `bin/SCRIPT_NETWORK_ANALYSIS.r` | Script for generating WGCNA network based on the Highly Variable Genes (HVG) generated from the primary analysis. | Rscript bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | The script generates all individual clusters and the complete file for posterior visualization (Cytoscape/others), check guide below | Optional | 3 |
+| [**Network Analysis**](bin/SCRIPT_NETWORK_ANALYSIS.r) | `bin/SCRIPT_NETWORK_ANALYSIS.r` | Standalone script called by the main pipeline for explicit hdWGCNA network construction, with compatibility fallback to the previous metacell plus WGCNA workflow. The gene set can be selected as HVGs, all genes, or a custom gene list. | Rscript bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | The script generates module-specific node and edge files, checkpoint files, and the complete export for posterior visualization (Cytoscape/others), check guide below | Optional | 3 |
 
-* Standalone scripts should be run locally since they are not included in the main pipeline, all other (Optional) can be run from the main scripts as secondary analysis (check Analysis options section).
+* The network analysis script is now called directly by the main pipeline in `ANALYSIS=3`, while still remaining available for standalone execution when needed.
 * If coordinate filtering is required (min_y, max_y, min_x, max_x), all coordinate parameters must be provided together.
 ---
 
 ### Network Visualization (Secondary analysis)
 * Example of job command (SGE):
 ```bash
-qsub -v ST_PYTHON="home/user/.conda/envs/st/bin/python",ANALYSIS=3 bin/2_COMPLETE_ANALYSIS.sh
+qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",R_CONTAINER="/project/directory/POLY_PIPELINE/r_hdwgcna",ANALYSIS=3,NETWORK_GENE_SET=hvg bin/2_COMPLETE_ANALYSIS.sh
 ```
 * Example of job command (PBS):
 ```bash
-qsub -v ST_PYTHON="/project/directory/POLY_PIPELINE/stereopy_1.5.1.sif",R_CONTAINER="/project/directory/POLY_PIPELINE/r_hdwgcna.sif",ANALYSIS=3 bin/2_COMPLETE_ANALYSIS.sh
+qsub -v ST_PYTHON="/project/directory/POLY_PIPELINE/stereopy_1.5.1.sif",R_CONTAINER="/project/directory/POLY_PIPELINE/r_hdwgcna.sif",ANALYSIS=3,NETWORK_GENE_SET=hvg bin/2_COMPLETE_ANALYSIS.sh
+```
+* Alternative gene selection examples:
+```bash
+qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",R_CONTAINER="/project/directory/POLY_PIPELINE/r_hdwgcna",ANALYSIS=3,NETWORK_GENE_SET=all bin/2_COMPLETE_ANALYSIS.sh
+qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",R_CONTAINER="/project/directory/POLY_PIPELINE/r_hdwgcna",ANALYSIS=3,NETWORK_GENE_SET=custom,CUSTOM_GENE_LIST="/project/directory/POLY_PIPELINE/INPUT/interest_genes.txt" bin/2_COMPLETE_ANALYSIS.sh
 ```
 * After running the secondary network analysis, the Edges and Nodes files will be generated under the EXPORTS folder, which can be used for posterior visualizations/filtering, mainly [**NETWORKX**](https://networkx.org/en/) and [**Cytoscape**](https://cytoscape.org/).
+* The network stage also writes the per-module files under `NETWORK/` and a checkpoint file `NETWORK/WGCNA_INTERMEDIATE_DATA.rds`.
 
 
 * Importing for Cytoscape:
@@ -216,7 +236,7 @@ POLY_PIPELINE/
 └── bin/
     ├── 0_SET_ENV.sh
     ├── 1_TEST_ENV.sh
-    ├── 2_COMPLETE_ANALYSIS.py
+    ├── 2_COMPLETE_ANALYSIS.sh
     ├── SCRIPT_CONVERTER.py
     ├── SCRIPT_NETWORK_ANALYSIS.r
     ├── SCRIPT_PRIMARY_ANALYSIS.py

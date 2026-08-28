@@ -24,11 +24,37 @@
 # Detect project base for PBS
 CURRENT_ROOT=$(pwd | cut -d'/' -f1-3)
 SCRATCH_ROOT=$(echo $CURRENT_ROOT | sed 's/gdata/scratch/')
+LOCAL_R_CONTAINER="$(pwd)/r_hdwgcna"
 
-if [[ "$ST_PYTHON" == *.sif ]]; then
+is_container_target() {
+    [[ -n "$1" && ( "$1" == *.sif || -d "$1" ) ]]
+}
+
+load_container_runtime() {
+    if command -v singularity >/dev/null 2>&1; then
+        CONTAINER_RUNTIME=singularity
+        return 0
+    fi
+
+    if command -v module >/dev/null 2>&1; then
+        module load singularity-ce/4.3.3 >/dev/null 2>&1 || module load singularity-ce >/dev/null 2>&1
+        if command -v singularity >/dev/null 2>&1; then
+            CONTAINER_RUNTIME=singularity
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+if is_container_target "$ST_PYTHON"; then
     # PBS Mode
-    module load singularity
-    ST_PYTHON="singularity exec -B $CURRENT_ROOT,$SCRATCH_ROOT $ST_PYTHON python3"
+    if ! load_container_runtime; then
+        echo "ERROR: singularity is not available on this cluster."
+        exit 1
+    fi
+
+    ST_PYTHON="$CONTAINER_RUNTIME exec -B $CURRENT_ROOT,$SCRATCH_ROOT $ST_PYTHON python3"
     echo "Running via Singularity on $CURRENT_ROOT"
 else
     # SGE Mode
@@ -36,19 +62,38 @@ else
 fi
 
 # Setup R Execution environment for PBS
-if [[ "$R_CONTAINER" == *.sif ]]; then
+if [[ "$ANALYSIS" -eq 3 ]]; then
+    if ! is_container_target "$R_CONTAINER" && is_container_target "$LOCAL_R_CONTAINER"; then
+        R_CONTAINER="$LOCAL_R_CONTAINER"
+    fi
+fi
+
+if is_container_target "$R_CONTAINER"; then
     # PBS Mode
-    module load singularity
+    if [[ -z "$CONTAINER_RUNTIME" ]]; then
+        if ! load_container_runtime; then
+            echo "ERROR: singularity is not available on this cluster."
+            exit 1
+        fi
+    fi
     export R_LIBS_USER="$(pwd)/R_libs_hdwgcna"
+    export NETWORK_GENE_SET="${NETWORK_GENE_SET:-hvg}"
+    export CUSTOM_GENE_LIST="${CUSTOM_GENE_LIST:-$(pwd)/INPUT/interest_genes.txt}"
     
-    ST_R="singularity exec --env R_LIBS_USER=$R_LIBS_USER -B $CURRENT_ROOT,$SCRATCH_ROOT $R_CONTAINER Rscript"
+    ST_R="$CONTAINER_RUNTIME exec --env R_LIBS_USER=$R_LIBS_USER -B $CURRENT_ROOT,$SCRATCH_ROOT $R_CONTAINER Rscript"
     
     echo "R running via Singularity: $R_CONTAINER"
     echo "Libs path: $R_LIBS_USER"
 else
+    if [[ "$ANALYSIS" -eq 3 ]]; then
+        echo "ERROR: ANALYSIS=3 requires a valid R container. Set R_CONTAINER to the local ./r_hdwgcna sandbox or a .sif image."
+        exit 1
+    fi
     # SGE Mode
     module load R/4.3.1
     export R_LIBS_USER=~/.local/R/library
+    export NETWORK_GENE_SET="${NETWORK_GENE_SET:-hvg}"
+    export CUSTOM_GENE_LIST="${CUSTOM_GENE_LIST:-$(pwd)/INPUT/interest_genes.txt}"
     ST_R="Rscript"
     echo "R running via Standard Rscript"
 fi
@@ -73,8 +118,9 @@ lscpu | grep "Model name"
 echo ""
 
 # Load environment with explicit paths
-echo "Loading singularity"
-module load singularity
+if is_container_target "$ST_PYTHON" || is_container_target "$R_CONTAINER"; then
+    echo "Loading container runtime"
+fi
 
 echo "Verifying all dependencies"
 $ST_PYTHON -c "
@@ -753,7 +799,7 @@ def create_clean_spatial_visualization_from_direct_results(direct_results, data,
             y_range = float(spatial_coords[:, 1].max()) - float(spatial_coords[:, 1].min())
             aspect_ratio = x_range / y_range if y_range > 0 else 1
         except (ValueError, TypeError):
-            aspect_ratio = 1  # fallback se conversão falhar
+            aspect_ratio = 1  # fallback
         ax1.set_aspect(aspect_ratio, adjustable='box')
         #ax1.set_aspect('equal', adjustable='box')
         for category in enriched_categories:
@@ -4506,190 +4552,14 @@ echo "==========================================="
 echo "Creating Converter Script..."
 echo "==========================================="
 
-# Generate NETWORK (R) analysis script
+# Use NETWORK (R) analysis script
 echo "==========================================="
-echo "Creating NETWORK Analysis Script (R)..."
+echo "Using NETWORK Analysis Script (R)..."
 echo "==========================================="
-cat > bin/SCRIPT_NETWORK_ANALYSIS.r << 'EOF'
-custom_lib <- Sys.getenv("R_LIBS_USER")
-cat(paste("Debug: R_LIBS_USER is", custom_lib, "\n"))
-if (custom_lib != "" && dir.exists(custom_lib)) {
-    # PBS/Gadi Mode
-    .libPaths(c(custom_lib, .libPaths()))
-    cat(paste("PBS Mode: Using pre-installed library:", custom_lib, "\n"))
-} else {
-    # SGE Mode
-    lib_path <- paste0(getwd(), "/R_libs")
-    if(!dir.exists(lib_path)) dir.create(lib_path, recursive = TRUE)
-    .libPaths(c(lib_path, .libPaths()))
-    cat(paste("SGE Mode: Using local library:", lib_path, "\n"))
-    
-    # Check and install packages
-if (Sys.getenv("R_CONTAINER") == "") {
-        install_if_missing <- function(pkg) {
-            if (!requireNamespace(pkg, quietly = TRUE)) {
-                install.packages(pkg, lib = lib_path, repos = "https://cloud.r-project.org")
-            }
-        }
-        needed_pkgs <- c("Seurat", "WGCNA", "tidyverse", "Matrix")
-        lapply(needed_pkgs, install_if_missing)
-    }
-}
-
-library(Seurat)
-library(WGCNA)
-library(hdWGCNA)
-library(tidyverse)
-library(Matrix)
-
-options(stringsAsFactors = FALSE)
-enableWGCNAThreads(nThreads = 10)
-
-# Find lastest FOLDER
-all_dirs <- list.dirs("..", full.names = TRUE, recursive = FALSE)
-results_dirs <- all_dirs[grepl("/RESULTS_", all_dirs)]
-
-if (length(results_dirs) == 0) {
-    stop("ERROR: No RESULTS folder found (RESULTS_*)")
-}
-
-latest_results <- sort(results_dirs, decreasing = TRUE)[1]
-cat(paste0("Working on: ", latest_results, "\n"))
-
-# Set working directory to the results folder
-setwd(latest_results)
-
-# Setup Network subdirectory
-output_dir <- "NETWORK/"
-if(!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
-project_name <- sub("RESULTS_", "", basename(latest_results))
-cat(paste0("Project Name: ", project_name, "\n"))
-checkpoint_file <- paste0(output_dir, "WGCNA_INTERMEDIATE_DATA.rds")
-
-if (file.exists(checkpoint_file)) {
-    cat("\n[CHECKPOINT] Loading previous progress\n")
-    checkpoint_data <- readRDS(checkpoint_file)
-    datExpr <- checkpoint_data$datExpr
-    TOM <- checkpoint_data$TOM
-    geneTree <- checkpoint_data$geneTree
-    mergedColors <- checkpoint_data$mergedColors
-    mergedMEs <- checkpoint_data$mergedMEs
-} else {
-    cat("\n[PROCESS] Starting full processing\n")
-    
-    # Load data from within the results folder
-    hvg_matrix_path <- "EXPORTS/HVG_EXPRESSION_MATRIX.csv"
-
-    if (!file.exists(hvg_matrix_path)) {
-        stop(paste("ERROR: HVG Matrix not found at", hvg_matrix_path))
-    }
-
-    cat("\n[PROCESS] Loading HVG matrix from EXPORTS\n")
-    
-    counts_raw <- read.csv(hvg_matrix_path, row.names = 1, check.names = FALSE)
-    counts_seurat <- t(as.matrix(counts_raw))
-    seurat_obj <- CreateSeuratObject(counts = counts_seurat, project = project_name)
-    seurat_obj <- NormalizeData(seurat_obj, verbose = FALSE)
-    seurat_obj <- FindVariableFeatures(seurat_obj, nfeatures = 2000, verbose = FALSE)
-    seurat_obj <- ScaleData(seurat_obj, verbose = FALSE)
-    seurat_obj <- RunPCA(seurat_obj, npcs = 50, verbose = FALSE)
-
-    # Metacells
-    k_value <- 25
-    pca_embeddings <- Embeddings(seurat_obj, reduction = "pca")[, 1:30]
-    set.seed(12345)
-    km_result <- kmeans(pca_embeddings, centers = k_value, iter.max = 100, nstart = 25)
-    expr_matrix <- GetAssayData(seurat_obj, assay = "RNA", layer = "data")
-    metacell_expr <- matrix(0, nrow = nrow(expr_matrix), ncol = k_value)
-    rownames(metacell_expr) <- rownames(expr_matrix)
-    colnames(metacell_expr) <- paste0("MC_", 1:k_value)
-    for(i in 1:k_value) {
-        cluster_cells <- which(km_result$cluster == i)
-        if(length(cluster_cells) > 0) {
-            metacell_expr[, i] <- Matrix::rowMeans(expr_matrix[, cluster_cells, drop = FALSE])
-        }
-    }
-
-    # WGCNA
-    datExpr <- as.data.frame(t(metacell_expr))
-    vars <- apply(datExpr, 2, var)
-    bad_genes <- names(vars[vars == 0 | is.na(vars)])
-    if(length(bad_genes) > 0) {
-        write.table(bad_genes, paste0(output_dir, "INITIAL_DISCARD_GSG.txt"), row.names=F, col.names=F, quote=F)
-        datExpr <- datExpr[, !colnames(datExpr) %in% bad_genes]
-    }
-
-    # Thresholding and TOM
-    powers <- c(seq(1, 10, by = 1), seq(12, 30, by = 2))
-    sft <- pickSoftThreshold(datExpr, powerVector = powers, networkType = "unsigned", verbose = 5)
-    selected_power <- sft$powerEstimate
-    if(is.na(selected_power)) selected_power <- 6
-
-    adjacency <- adjacency(datExpr, power = selected_power, type = "unsigned")
-    TOM <- TOMsimilarity(adjacency)
-    dissTOM <- 1 - TOM
-    geneTree <- hclust(as.dist(dissTOM), method = "average")
-    dynamicMods <- cutreeDynamic(dendro = geneTree, distM = dissTOM, deepSplit = 2, pamRespectsDendro = FALSE, minClusterSize = 30)
-    dynamicColors <- labels2colors(dynamicMods)
-    merge <- mergeCloseModules(datExpr, dynamicColors, cutHeight = 0.25, verbose = 3)
-    mergedColors <- merge$colors
-    mergedMEs <- merge$newMEs
-
-    saveRDS(list(datExpr=datExpr, TOM=TOM, geneTree=geneTree, mergedColors=mergedColors, mergedMEs=mergedMEs), checkpoint_file)
-}
-
-# Export Results
-kME <- cor(datExpr, mergedMEs, use = "p")
-modules_df <- data.frame(gene_name = colnames(datExpr), module = mergedColors, color = mergedColors, stringsAsFactors = FALSE)
-modules_df$kME <- sapply(1:nrow(modules_df), function(i) {
-    mod <- modules_df$module[i]
-    me_col <- paste0("ME", mod)
-    if(me_col %in% colnames(kME)) return(kME[i, me_col]) else return(NA)
-})
-
-threshold <- 0.15
-all_edges_list <- list()
-
-# Detect environment inside R
-is_pbs <- Sys.getenv("R_CONTAINER") != ""
-
-for(mod in unique(mergedColors)) {
-    mod_genes <- modules_df %>% filter(module == mod) %>% pull(gene_name)
-    mod_idx <- which(colnames(datExpr) %in% mod_genes)
-    if(length(mod_genes) < 2) next
-    tom_sub <- TOM[mod_idx, mod_idx]
-    rownames(tom_sub) <- colnames(tom_sub) <- mod_genes
-    
-    # Conversão segura para data frame
-    edges_mod <- as.data.frame(as.table(tom_sub), stringsAsFactors = FALSE)
-
-    if (is_pbs) {
-        # PBS/Singularity Mode: Forçamos os nomes para evitar erro de Var1
-        colnames(edges_mod) <- c("fromNode", "toNode", "weight")
-    } else {
-        # SGE Mode: Mantemos sua lógica original baseada em Var1/Var2
-        edges_mod <- edges_mod %>%
-            rename(fromNode = Var1, toNode = Var2, weight = Freq)
-    }
-
-    edges_mod <- edges_mod %>%
-        filter(weight > threshold & fromNode != toNode)
-
-    if(nrow(edges_mod) > 0) {
-        edges_mod <- edges_mod[as.character(edges_mod$fromNode) < as.character(edges_mod$toNode), ]
-        all_edges_list[[mod]] <- edges_mod
-        write.table(edges_mod, paste0(output_dir, mod, "_EDGE.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
-    }
-    write.table(modules_df %>% filter(module == mod), paste0(output_dir, mod, "_NODE.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
-}
-exports_dir <- "EXPORTS/"
-if(!dir.exists(exports_dir)) dir.create(exports_dir, recursive = TRUE)
-edge_filename <- paste0(exports_dir, project_name, "_FULL_EDGES.txt")
-node_filename <- paste0(exports_dir, project_name, "_FULL_NODES.txt")
-cat(paste0("Exporting Complete Edges and Nodes files for visualization: ", exports_dir, "\n"))
-write.table(bind_rows(all_edges_list), edge_filename, sep = "\t", quote = FALSE, row.names = FALSE)
-write.table(modules_df, node_filename, sep = "\t", quote = FALSE, row.names = FALSE)
-EOF
+if [[ ! -f bin/SCRIPT_NETWORK_ANALYSIS.r ]]; then
+    echo "ERROR: bin/SCRIPT_NETWORK_ANALYSIS.r not found"
+    exit 1
+fi
 
 # Dynamic analysis selection
 case $ANALYSIS in
@@ -4754,8 +4624,20 @@ case $ANALYSIS in
         # Find and decompress the latest results folder
         LATEST_COMPRESSED=$(ls -t RESULTS_*.tar.gz 2>/dev/null | head -1)
         if [ -z "$LATEST_COMPRESSED" ]; then
-            echo "ERROR: No compressed results folder found (RESULTS_*.tar.gz)"
-            exit 1
+            echo "No compressed results found. Running PRIMARY ANALYSIS first..."
+            $ST_PYTHON bin/SCRIPT_PRIMARY_ANALYSIS.py
+            PRIMARY_EXIT=$?
+            if [ $PRIMARY_EXIT -ne 0 ]; then
+                echo "ERROR: Primary analysis failed, cannot continue to hdWGCNA."
+                EXIT_CODE=$PRIMARY_EXIT
+                exit $EXIT_CODE
+            fi
+
+            LATEST_COMPRESSED=$(ls -t RESULTS_*.tar.gz 2>/dev/null | head -1)
+            if [ -z "$LATEST_COMPRESSED" ]; then
+                echo "ERROR: Primary analysis completed but no compressed results folder was found."
+                exit 1
+            fi
         fi
 
         echo "Found compressed results: $LATEST_COMPRESSED"
@@ -4771,7 +4653,7 @@ case $ANALYSIS in
 
         # Execute R script (pointing back to bin/)
         echo "[$(date +%H:%M:%S)] Running Rscript..."
-        $ST_R ../bin/SCRIPT_NETWORK_ANALYSIS.r 2>&1 | tee LOGS/NETWORK_ANALYSIS.log
+        $ST_R ../bin/SCRIPT_NETWORK_ANALYSIS.r "$NETWORK_GENE_SET" "$CUSTOM_GENE_LIST" 2>&1 | tee LOGS/NETWORK_ANALYSIS.log
         
         EXIT_CODE=${PIPESTATUS[0]}
         
