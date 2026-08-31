@@ -1,0 +1,20 @@
+(LOUVAIN) STATISTICAL DISTRIBUTION ANALYSIS
+====================================================================================================
+
+Dataset size: 1769150 records
+Unique clusters: 25
+Unique genes: 70766
+
+LOG2 FOLD CHANGE DISTRIBUTION:
+Mean: -8.8487
+Median: -13.4190
+Std: 8.4521
+Skewness: 0.3507
+Kurtosis: -1.3805
+Shapiro-Wilk test (sample): W=0.8259, p=0.00e+00
+
+ADJUSTED P-VALUES DISTRIBUTION:
+Mean: 0.372849
+Median: 0.353716
+Min: 0.00e+00
+Max: 1.000000

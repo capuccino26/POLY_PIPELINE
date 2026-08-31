@@ -1,0 +1,18 @@
+{
+  "analysis_type": "NO_LIMITS",
+  "start_time": "2026-08-28T09:25:20.558671",
+  "end_time": "2026-08-28T09:37:11.529130",
+  "total_duration_seconds": 710.970459,
+  "total_duration_minutes": 11.84950765,
+  "data_file": "INPUT/datasets/D02266B1.gef",
+  "n_clusters": 28,
+  "n_cells": 57593,
+  "n_genes": 70766,
+  "marker_analysis_duration": 3.234417,
+  "peak_memory_percent": 2.6,
+  "peak_memory_gb": 10.600787968,
+  "system_ram_gb": 539.912077312,
+  "cpu_cores": 80,
+  "python_version": "3.8.20",
+  "stereopy_version": "1.5.1"
+}

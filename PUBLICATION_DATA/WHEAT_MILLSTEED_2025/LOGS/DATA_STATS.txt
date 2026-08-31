@@ -1,0 +1,38 @@
+====================================================================================================
+DATA STATISTICS
+====================================================================================================
+
+RAW DATA CHARACTERISTICS:
+StereoExpData object with n_cells X n_genes = 151711 X 70766
+bin_type: bins
+bin_size: 50
+offset_x = 0
+offset_y = 50
+cells: ['cell_name']
+genes: ['gene_name']
+cells_matrix = ['spatial']
+Layers with keys: 
+tl.result: []
+
+Cells matrix shape: (151711, 0)
+Genes matrix shape: (70766, 0)
+
+FILTERING CRITERIA:
+- Minimum counts per cell: 30
+- Minimum genes per cell: 30
+- Maximum mitochondrial percentage: 100%
+
+AFTER FILTERING:
+StereoExpData object with n_cells X n_genes = 57593 X 70766
+bin_type: bins
+bin_size: 50
+offset_x = 0
+offset_y = 50
+cells: ['cell_name', 'total_counts', 'n_genes_by_counts', 'pct_counts_mt']
+genes: ['gene_name']
+cells_matrix = ['spatial']
+Layers with keys: 
+tl.result: []
+Cells removed: 94118 (62.0%)
+Genes retained: 70766
+
