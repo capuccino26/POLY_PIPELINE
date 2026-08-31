@@ -5,6 +5,7 @@ This directory contains processed outputs prepared for manuscript submission and
 ## Current dataset package
 
 - `WHEAT_MILLSTEED_2025/`: curated processed data used to regenerate the manuscript figures and supplementary figures from the wheat analysis run.
+- `FIGURE_DATA_REFERENCE.md`: direct figure-to-file mapping table for manuscript and supplementary figure traceability.
 
 ## Scope
 

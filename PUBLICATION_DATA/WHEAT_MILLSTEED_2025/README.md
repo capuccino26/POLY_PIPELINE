@@ -6,7 +6,7 @@ Processed data package for manuscript figure and supplementary figure reproducib
 
 This package supports a manuscript currently under submission and contains processed outputs from:
 
-- input sample: `D02266B1.gef`
+- input sample identifier: `D02266B1` (raw `.gef` file is not included in this repository)
 - run folder: `RESULTS_D02266B1_20260828_0925`
 
 Primary study reference:
@@ -48,8 +48,30 @@ Excluded from this package are very large intermediates that exceed practical re
 - full HVG expression matrix table
 - complete all-marker tables for all clustering modes
 - full `INTEREST_ANALYSIS` bulk marker dumps
+- raw input `.gef` files (sensitive/raw source data)
 
 These exclusions do not block regeneration of the published figure outputs included under `PLOTS/` and `CLUSTERING/`.
+
+## Figure-to-data reference table
+
+The table below links manuscript figures to the processed files in this package.
+
+| Manuscript figure | Panel | Description | Primary processed files |
+| :--- | :--- | :--- | :--- |
+| Figure 2 | a | PCA elbow plot (variance explained per PC) | `PLOTS/QC/PCA_ELBOW.png` |
+| Figure 2 | b | Spatial count-intensity visualization (tissue-only view) | `PLOTS/QC/PRE_NORM_COUNT.png` (and alternative normalization view `PLOTS/QC/POS_NORM_COUNT.png`) |
+| Figure 3 | a | tan module co-expression subnetwork | `NETWORK/tan_EDGE.txt`, `NETWORK/tan_NODE.txt` |
+| Figure 3 | b | green module co-expression subnetwork | `NETWORK/green_EDGE.txt`, `NETWORK/green_NODE.txt` |
+| Figure 3 | c | red module co-expression subnetwork | `NETWORK/red_EDGE.txt`, `NETWORK/red_NODE.txt` |
+| Figure 3 | d | salmon module co-expression subnetwork | `NETWORK/salmon_EDGE.txt`, `NETWORK/salmon_NODE.txt` |
+| Figure 4 | a | Wheat spatial Leiden clustering panel | `CLUSTERING/LEIDEN_CLUSTERS.png` and `CLUSTERING/SPATIAL_LEIDEN_CLUSTERS.png` |
+| Figure 4 | b | Mouse benchmarking panel | external dataset reference (processed benchmark outputs should be uploaded as a separate package) |
+| Figure 4 | c | Arabidopsis benchmarking panel | external dataset reference (processed benchmark outputs should be uploaded as a separate package) |
+| Figure 4 | d | Rice benchmarking panel | external dataset reference (processed benchmark outputs should be uploaded as a separate package) |
+
+For supplementary figures:
+- cluster-level supplementary panels are in `CLUSTERING/LEIDEN/`, `CLUSTERING/LOUVAIN/`, and `CLUSTERING/SPATIAL_LEIDEN/`
+- volcano-panel supplementary outputs are in `PLOTS/LEIDEN_VOLCANO_PLOTS_COMPLETE/`, `PLOTS/LOUVAIN_VOLCANO_PLOTS_COMPLETE/`, and `PLOTS/SPATIAL_LEIDEN_VOLCANO_PLOTS_COMPLETE/`
 
 ## File inventory
 
