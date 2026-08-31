@@ -65,9 +65,9 @@ The table below links manuscript figures to the processed files in this package.
 | Figure 3 | c | red module co-expression subnetwork | `NETWORK/red_EDGE.txt`, `NETWORK/red_NODE.txt` |
 | Figure 3 | d | salmon module co-expression subnetwork | `NETWORK/salmon_EDGE.txt`, `NETWORK/salmon_NODE.txt` |
 | Figure 4 | a | Wheat spatial Leiden clustering panel | `CLUSTERING/LEIDEN_CLUSTERS.png` and `CLUSTERING/SPATIAL_LEIDEN_CLUSTERS.png` |
-| Figure 4 | b | Mouse benchmarking panel | external dataset reference (processed benchmark outputs should be uploaded as a separate package) |
-| Figure 4 | c | Arabidopsis benchmarking panel | external dataset reference (processed benchmark outputs should be uploaded as a separate package) |
-| Figure 4 | d | Rice benchmarking panel | external dataset reference (processed benchmark outputs should be uploaded as a separate package) |
+| Figure 4 | b | Mouse benchmarking panel | data not included |
+| Figure 4 | c | Arabidopsis benchmarking panel | data not included |
+| Figure 4 | d | Rice benchmarking panel | data not included |
 
 For supplementary figures:
 - cluster-level supplementary panels are in `CLUSTERING/LEIDEN/`, `CLUSTERING/LOUVAIN/`, and `CLUSTERING/SPATIAL_LEIDEN/`

@@ -13,9 +13,9 @@ Reference table linking manuscript figures to processed data files and source da
 | Figure 3 | c | Wheat (D02266B1) | `WHEAT_MILLSTEED_2025/NETWORK/red_EDGE.txt` + `WHEAT_MILLSTEED_2025/NETWORK/red_NODE.txt` |
 | Figure 3 | d | Wheat (D02266B1) | `WHEAT_MILLSTEED_2025/NETWORK/salmon_EDGE.txt` + `WHEAT_MILLSTEED_2025/NETWORK/salmon_NODE.txt` |
 | Figure 4 | a | Wheat | `WHEAT_MILLSTEED_2025/CLUSTERING/LEIDEN_CLUSTERS.png` and `WHEAT_MILLSTEED_2025/CLUSTERING/SPATIAL_LEIDEN_CLUSTERS.png` |
-| Figure 4 | b | Mouse benchmark | pending benchmark processed package upload |
-| Figure 4 | c | Arabidopsis benchmark | pending benchmark processed package upload |
-| Figure 4 | d | Rice benchmark | pending benchmark processed package upload |
+| Figure 4 | b | Mouse benchmark | data not included |
+| Figure 4 | c | Arabidopsis benchmark | data not included |
+| Figure 4 | d | Rice benchmark | data not included |
 
 ## Supplementary figure mapping
 
