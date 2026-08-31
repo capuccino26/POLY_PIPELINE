@@ -1,0 +1,20 @@
+(SPATIAL LEIDEN) STATISTICAL DISTRIBUTION ANALYSIS
+====================================================================================================
+
+Dataset size: 1273788 records
+Unique clusters: 18
+Unique genes: 70766
+
+LOG2 FOLD CHANGE DISTRIBUTION:
+Mean: -9.0798
+Median: -13.6427
+Std: 8.5978
+Skewness: 0.4140
+Kurtosis: -1.2425
+Shapiro-Wilk test (sample): W=0.8332, p=0.00e+00
+
+ADJUSTED P-VALUES DISTRIBUTION:
+Mean: 0.354050
+Median: 0.313672
+Min: 0.00e+00
+Max: 1.000000

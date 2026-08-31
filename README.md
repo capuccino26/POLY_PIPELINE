@@ -220,6 +220,42 @@ qsub -v ST_PYTHON="/home/user/.conda/envs/st/bin/python",R_CONTAINER="/project/d
 * Check documentation for further details.
 ---
 
+## Data Availability
+
+The manuscript associated with this repository is currently under submission for publication.
+
+The complete pipeline and documentation are available in this repository:
+* https://github.com/capuccino26/POLY_PIPELINE
+
+Processed data required to regenerate the main and supplementary figures from the primary wheat analysis are available in:
+* `PUBLICATION_DATA/WHEAT_MILLSTEED_2025/`
+
+This folder includes:
+* Processed exports and metadata (`EXPORTS/`)
+* Network outputs used in hdWGCNA visualization (`NETWORK/`)
+* Figure panels and supplementary plot outputs (`PLOTS/`, `CLUSTERING/`)
+* Statistical summaries and run metadata (`STATISTICAL_ANALYSIS/`, `LOGS/`, `REPORTS/`)
+* File-size manifest for reproducibility (`FILE_MANIFEST_MB.txt`)
+
+Reference dataset used for all manuscript figure generation (main analysis):
+* Millsteed, T., Kainer, D., Sullivan, R., Sun, X., Li, K.L., Mao, L., Macdonald, A., Henry, R.J., 2025. Spatial Transcriptomics of Developing Wheat Seed Reveals Concentric Gene Expression Zones and Subgenome Biased Expression of Key Genes. Plant Biotechnology Journal 23, 5934-5949. https://doi.org/10.1111/pbi.70351
+* https://onlinelibrary.wiley.com/doi/full/10.1111/pbi.70351
+* Wheat source data: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE298021
+
+Benchmarking datasets (used for performance and workflow benchmarking):
+* Rice: https://ftp.cngb.org/pub/stomics/STT0000026/Analysis/STSA0000251/STTS0000395/
+* Arabidopsis: https://db.cngb.org/stomics/datasets/STDS0000104/
+* Mouse: https://db.cngb.org/stomics/datasets/STDS0000058/
+
+Benchmarking references:
+* Zhong, L., Geng, L., Xiang, Y., Guang, X., Cao, L., Shi, J., Li, W., Wang, J., He, W., Huang, L., Yang, F., Bai, Y.-X., Sahu, S.K., Guo, X., Zhang, S., Zhang, G., Xu, X., Hu, F., Yang, W., Liu, H., Zhao, Y., Lyu, J., 2025. Comparative spatial transcriptomics reveals root dryland adaptation mechanism in rice and HMGB1 as a key regulator. Molecular Plant 18, 797-819. https://doi.org/10.1016/j.molp.2025.04.001
+* https://www.cell.com/molecular-plant/fulltext/S1674-2052(25)00110-8
+* Xia, K., Sun, H.-X., Li, Jie, Li, Jiming, Zhao, Y., Chen, L., Qin, C., Chen, R., Chen, Z., Liu, G., Yin, R., Mu, B., Wang, X., Xu, M., Li, X., Yuan, P., Qiao, Y., Hao, S., Wang, Jing, Xie, Q., Xu, J., Liu, S., Li, Y., Chen, A., Liu, L., Yin, Y., Yang, H., Wang, Jian, Gu, Y., Xu, X., 2022. The single-cell stereo-seq reveals region-specific cell subtypes and transcriptome profiling in Arabidopsis leaves. Developmental Cell 57, 1299-1310.e4. https://doi.org/10.1016/j.devcel.2022.04.011
+* https://www.cell.com/developmental-cell/fulltext/S1534-5807(22)00251-9
+* Chen, A., Liao, S., Cheng, M., Ma, K., Wu, L., Lai, Y., Qiu, X., Yang, J., Xu, J., Hao, S., Wang, X., Lu, Huifang, Chen, X., Liu, X., Huang, X., Li, Z., Hong, Y., Jiang, Y., Peng, J., Liu, Shuai, Shen, M., Liu, C., Li, Q., Yuan, Y., Wei, Xiaoyu, Zheng, H., Feng, W., Wang, Zhifeng, Liu, Y., Wang, Zhaohui, Yang, Y., Xiang, H., Han, L., Qin, B., Guo, P., Lai, G., Munoz-Canoves, P., Maxwell, P.H., Thiery, J.P., Wu, Q.-F., Zhao, F., Chen, B., Li, M., Dai, X., Wang, S., Kuang, H., Hui, J., Wang, L., Fei, J.-F., Wang, O., Wei, Xiaofeng, Lu, Haorong, Wang, B., Liu, Shiping, Gu, Y., Ni, M., Zhang, W., Mu, F., Yin, Y., Yang, H., Lisby, M., Cornall, R.J., Mulder, J., Uhlen, M., Esteban, M.A., Li, Y., Liu, L., Xu, X., Wang, J., 2022. Spatiotemporal transcriptomic atlas of mouse organogenesis using DNA nanoball-patterned arrays. Cell 185, 1777-1792.e21. https://doi.org/10.1016/j.cell.2022.04.003
+* https://www.cell.com/cell/fulltext/S0092-8674(22)00399-3
+---
+
 ## Project Structure
 ```markdown
 

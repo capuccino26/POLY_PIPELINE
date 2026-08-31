@@ -1,0 +1,40 @@
+====================================================================================================
+SPATIAL TRANSCRIPTOMICS ANALYSIS REPORT
+====================================================================================================
+
+Analysis completed: 2026-08-28 09:37:11.529130
+Total processing time: 11.8 minutes (711.0 seconds)
+Data file: INPUT/datasets/D02266B1.gef
+Output directory: RESULTS_D02266B1_20260828_0925
+
+SYSTEM RESOURCES UTILIZED:
+- Total RAM available: 539.9 GB
+- Peak memory usage: 2.6% (10.6 GB)
+- CPU cores utilized: 80
+- Python version: 3.8.20
+- Stereopy version: 1.5.1
+
+LOUVAIN CLUSTERING ANALYSIS RESULTS:
+- Total clusters identified: 25
+- Total cells analyzed: 57593
+- Largest cluster: 7863 cells (Cluster 1)
+- Smallest cluster: 464 cells (Cluster 25)
+- Average cluster size: 2303.7 cells
+- Total genes analyzed: 70766
+
+LEIDEN CLUSTERING ANALYSIS RESULTS:
+- Total clusters identified: 28
+- Total cells analyzed: 57593
+- Largest cluster: 7598 cells (Cluster 1)
+- Smallest cluster: 128 cells (Cluster 28)
+- Average cluster size: 2056.9 cells
+- Total genes analyzed: 70766
+
+SPATIAL_LEIDEN CLUSTERING ANALYSIS RESULTS:
+- Total clusters identified: 18
+- Total cells analyzed: 57593
+- Largest cluster: 14218 cells (Cluster 1)
+- Smallest cluster: 137 cells (Cluster 18)
+- Average cluster size: 3199.6 cells
+- Total genes analyzed: 70766
+

@@ -1,0 +1,20 @@
+(LEIDEN) STATISTICAL DISTRIBUTION ANALYSIS
+====================================================================================================
+
+Dataset size: 1981448 records
+Unique clusters: 28
+Unique genes: 70766
+
+LOG2 FOLD CHANGE DISTRIBUTION:
+Mean: -9.2773
+Median: -13.8108
+Std: 8.4358
+Skewness: 0.4360
+Kurtosis: -1.3242
+Shapiro-Wilk test (sample): W=0.8216, p=0.00e+00
+
+ADJUSTED P-VALUES DISTRIBUTION:
+Mean: 0.355234
+Median: 0.319923
+Min: 0.00e+00
+Max: 1.000000
